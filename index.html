@@ -1,3 +1,4 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NGC 4696 — Comment un trou noir se nourrit</title>
 <style>
   :root{
@@ -65,6 +66,18 @@
     font-size:.76rem; line-height:1.5; color:var(--text-2); margin:0; max-width:36ch;
   }
   .masthead-sub b{color:var(--text-1); font-weight:600;}
+  .paper-link{
+    position:fixed; left:1.1rem; bottom:1rem; z-index:11;
+    display:inline-block; margin:0; pointer-events:auto;
+    font-family:var(--font-mono); font-size:.6rem; line-height:1.55;
+    letter-spacing:.02em; color:var(--text-3-solid); text-decoration:none;
+    border-bottom:1px dotted var(--hairline); padding-bottom:1px;
+    transition:color .15s ease, border-color .15s ease;
+    max-width:46ch;
+    text-shadow:0 1px 6px rgba(0,0,0,.85);
+  }
+  .paper-link:hover{color:var(--accent); border-bottom-color:var(--accent);}
+  .paper-link .ext{opacity:.85;}
 
   .console{
     position:fixed; right:1rem; bottom:1rem; z-index:10;
@@ -178,6 +191,16 @@
   @media (max-width: 640px){
     .console{width:calc(100vw - 1.6rem); left:.8rem; right:.8rem; bottom:.8rem;}
     .masthead{max-width:calc(100vw - 1.6rem);}
+    /* the console spans the bottom on mobile — anchor the source
+       back under the intro text instead of bottom-left */
+    .paper-link{position:static; margin-top:.6rem; max-width:100%;}
+    .ai-badge{
+      top:.6rem; right:.6rem; max-width:46vw;
+      white-space:normal; text-align:right;
+      font-size:.56rem; padding:.3rem .5rem; line-height:1.5;
+    }
+    .masthead{max-width:52vw;}
+    .console{max-height:46vh;}
   }
   @media (prefers-reduced-motion: reduce){
     * { scroll-behavior:auto !important; }
@@ -199,6 +222,7 @@
   <p class="masthead-kicker" id="m-kicker"></p>
   <h1 class="masthead-title" id="m-title"></h1>
   <p class="masthead-sub" id="m-sub"></p>
+  <a class="paper-link" id="paper-link" href="https://iopscience.iop.org/article/10.3847/2041-8213/ae81ae" target="_blank" rel="noopener"><span id="src-label"></span> Hlavacek-Larrondo, J. et al. (2026), &quot;JWST reveals how black holes are fed&quot;, ApJL · doi:10.3847/2041-8213/ae81ae <span class="ext">↗</span></a>
 </header>
 
 <div class="console" id="console">
@@ -249,10 +273,10 @@
     <label class="switch"><input type="checkbox" id="tg-jet" checked><span class="track"><span class="knob"></span></span></label>
   </div>
   <div class="toggle-row"><span id="lb-gal"></span>
-    <label class="switch"><input type="checkbox" id="tg-gal" checked><span class="track"><span class="knob"></span></span></label>
+    <label class="switch"><input type="checkbox" id="tg-gal"><span class="track"><span class="knob"></span></span></label>
   </div>
   <div class="toggle-row"><span id="lb-uni"></span>
-    <label class="switch"><input type="checkbox" id="tg-uni" checked><span class="track"><span class="knob"></span></span></label>
+    <label class="switch"><input type="checkbox" id="tg-uni"><span class="track"><span class="knob"></span></span></label>
   </div>
 
   <p class="section-label" id="lbl-anim"></p>
@@ -280,7 +304,7 @@
     <p id="about-1"></p>
     <p id="about-2"></p>
     <p id="about-3"></p>
-    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), "JWST reveals how black holes are fed", ApJL. doi:10.3847/2041-8213/ae81ae — NGC 1275 (Perseus): similar structure.</p>
+    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), <a href="https://iopscience.iop.org/article/10.3847/2041-8213/ae81ae" target="_blank" rel="noopener">"JWST reveals how black holes are fed"</a>, ApJL. doi:<a href="https://doi.org/10.3847/2041-8213/ae81ae" target="_blank" rel="noopener">10.3847/2041-8213/ae81ae</a> — NGC 1275 (Perseus): similar structure.</p>
   </details>
 </div>
 
@@ -468,6 +492,7 @@
 
   var currentLang = 'en';
   var NATIVE = {en:"English", fr:"Français", es:"Español", pt:"Português", de:"Deutsch", ru:"Русский", zh:"中文", ja:"日本語", ar:"العربية", hi:"हिन्दी"};
+  var SRC = {en:"Source:", fr:"Source :", es:"Fuente:", pt:"Fonte:", de:"Quelle:", ru:"Источник:", zh:"来源：", ja:"出典：", ar:"المصدر:", hi:"स्रोत:"};
   function refreshLangOptions(){
     var sel = document.getElementById('lang-select');
     for(var i=0;i<sel.options.length;i++){
@@ -483,6 +508,7 @@
     document.getElementById('m-kicker').textContent = t.kicker;
     document.getElementById('m-title').textContent = t.title;
     document.getElementById('m-sub').innerHTML = t.sub;
+    document.getElementById('src-label').textContent = SRC[lang] || SRC.en;
     document.getElementById('lbl-render').textContent = t.render;
     document.getElementById('mode-schema').innerHTML = t.mSchema + '<br><span style="opacity:.6">' + t.mSchemaSub + '</span>';
     document.getElementById('mode-art').innerHTML = t.mArt + '<br><span style="opacity:.6">' + t.mArtSub + '</span>';
@@ -919,7 +945,7 @@
   uploadPos(galaxy); uploadCol(galaxy); uploadSize(galaxy);
 
   // ---------------- Nebular veil (artistic mode): spiral haze ----------------
-  var NEB_N = 1500;
+  var NEB_N = 2200;
   var nebula = makeGroup(NEB_N, false);
   var nebulaBase = new Float32Array(NEB_N*3);
   (function(){
@@ -927,7 +953,9 @@
     while(placed < NEB_N){
       var rr = 1.2 + 12.0*Math.sqrt(Math.random());
       var th = rand(0, Math.PI*2);
-      var armPhase = th - 2.1*Math.log(rr);
+      // trailing arms: winding opposite to the (counterclockwise) rotation
+      // shared by the nuclear disk and the black hole's accretion flow
+      var armPhase = th + 2.1*Math.log(rr);
       var w = 0.50 + 0.50*Math.cos(2.0*armPhase);
       if(Math.random() > 0.25 + 0.75*w) continue;
       var h = (Math.random()+Math.random()+Math.random()-1.5) * (0.5 + rr*0.06);
@@ -935,9 +963,9 @@
       nebulaBase[placed*3]=x; nebulaBase[placed*3+1]=h; nebulaBase[placed*3+2]=z;
       var tR = clamp((rr-1.2)/12.0, 0, 1);
       var c;
-      if(tR < 0.25) c = mix3([1.0,0.95,0.85], [0.95,0.55,0.70], tR/0.25);
-      else c = mix3([0.95,0.55,0.70], [0.42,0.48,0.95], (tR-0.25)/0.75);
-      var b = (0.06 + 0.16*(1-tR)) * rand(0.5,1.0) * (0.6+0.4*w);
+      if(tR < 0.25) c = mix3([1.0,0.97,0.88], [0.96,0.58,0.72], tR/0.25);
+      else c = mix3([0.96,0.58,0.72], [0.44,0.50,0.98], (tR-0.25)/0.75);
+      var b = (0.14 + 0.34*(1-tR)) * rand(0.55,1.0) * (0.6+0.4*w);
       nebula.col[placed*3]=c[0]*b; nebula.col[placed*3+1]=c[1]*b; nebula.col[placed*3+2]=c[2]*b;
       nebula.size[placed] = rand(24, 60);
       placed++;
@@ -1220,6 +1248,10 @@
     document.getElementById('mode-schema').classList.toggle('active', mode==='schema');
     document.getElementById('mode-art').classList.toggle('active', mode==='art');
     document.getElementById('row-disk').classList.toggle('dimmed', mode==='art');
+    // per-mode layer defaults: galaxy & cluster shine in the artistic vista,
+    // stay out of the way in the educational diagram
+    setLayer('gal', 'tg-gal', mode==='art');
+    setLayer('uni', 'tg-uni', mode==='art');
     if(mode === 'art'){
       flyTo({ q: CINE_VIEW.q, radius: CINE_VIEW.radius }, null);
     }
@@ -1228,7 +1260,11 @@
   document.getElementById('mode-schema').addEventListener('click', function(){ setMode('schema'); });
   document.getElementById('mode-art').addEventListener('click', function(){ setMode('art'); });
 
-  var layerVisible = { atmo:true, fil:true, disk:true, jet:true, gal:true, uni:true };
+  var layerVisible = { atmo:true, fil:true, disk:true, jet:true, gal:false, uni:false };
+  function setLayer(key, checkboxId, v){
+    layerVisible[key] = v;
+    document.getElementById(checkboxId).checked = v;
+  }
   document.getElementById('tg-atmo').addEventListener('change', function(e){ layerVisible.atmo = e.target.checked; });
   document.getElementById('tg-fil').addEventListener('change', function(e){ layerVisible.fil = e.target.checked; });
   document.getElementById('tg-disk').addEventListener('change', function(e){ layerVisible.disk = e.target.checked; });
@@ -1259,10 +1295,12 @@
   // Resize
   // ---------------------------------------------------------------
   var proj = perspective(50*Math.PI/180, 1, 0.1, 520);
+  var lastCW = 0, lastCH = 0;
   function resize(){
     var dpr = Math.min(window.devicePixelRatio||1, 2);
     if(renderMode === 'art') dpr = 1;
     var w = canvas.clientWidth, h = canvas.clientHeight;
+    lastCW = w; lastCH = h;
     canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
     gl.viewport(0,0,canvas.width, canvas.height);
     proj = perspective(50*Math.PI/180, w/h, 0.1, 520);
@@ -1295,6 +1333,7 @@
   }
 
   function frame(now){
+    if(canvas.clientWidth !== lastCW || canvas.clientHeight !== lastCH) resize();
     var dt = Math.min((now-lastFrame)/1000, 0.05);
     lastFrame = now;
     if(playing) simTime += dt*speed;
