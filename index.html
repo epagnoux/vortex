@@ -1,0 +1,789 @@
+<title>NGC 4696 — Comment un trou noir se nourrit</title>
+<style>
+  :root{
+    --void:#05070d;
+    --panel-bg: rgba(12,17,31,0.74);
+    --panel-border: rgba(126,146,196,0.22);
+    --hairline: rgba(140,158,199,0.30);
+    --text-1:#e9edf7;
+    --text-2:#9aa6c4;
+    --text-3:#68729176;
+    --text-3-solid:#6b7594;
+    --phase-hot:#bfe3ff;
+    --phase-warm:#ff9d52;
+    --phase-cold:#ef4d8f;
+    --jet:#b48cff;
+    --accent:#5fd4c8;
+    --accent-dim: rgba(95,212,200,0.32);
+    --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", "URW Palladio", Georgia, serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; height:100%; width:100%; overflow:hidden;
+    background:var(--void); color:var(--text-1);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  #scene{position:fixed; inset:0; width:100%; height:100%; touch-action:none; cursor:grab;}
+  #scene.dragging{cursor:grabbing;}
+
+  #fallback{
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    padding:2rem; text-align:center; font-family:var(--font-body); color:var(--text-2);
+  }
+  #fallback.show{display:flex;}
+
+  .veil{
+    position:fixed; inset:0; background:var(--void); z-index:50;
+    display:flex; align-items:center; justify-content:center;
+    transition:opacity .6s ease;
+    font-family:var(--font-mono); font-size:.72rem; letter-spacing:.14em;
+    color:var(--text-3-solid); text-transform:uppercase;
+  }
+  .veil.hidden{opacity:0; pointer-events:none;}
+
+  a{color:var(--accent);}
+
+  /* ---- Masthead ---- */
+  .masthead{
+    position:fixed; top:0; left:0; z-index:10;
+    padding:1.1rem 1.3rem .9rem;
+    max-width:min(420px, 78vw);
+    pointer-events:none;
+  }
+  .masthead-kicker{
+    font-family:var(--font-mono); font-size:.62rem; letter-spacing:.16em;
+    color:var(--text-3-solid); text-transform:uppercase; margin:0 0 .35rem;
+  }
+  .masthead-title{
+    font-family:var(--font-display); font-weight:500; font-style:italic;
+    font-size:1.28rem; line-height:1.28; margin:0 0 .3rem; color:var(--text-1);
+    text-wrap:balance;
+    border-bottom:1px solid var(--hairline); padding-bottom:.5rem;
+  }
+  .masthead-sub{
+    font-size:.76rem; line-height:1.5; color:var(--text-2); margin:0; max-width:36ch;
+  }
+  .masthead-sub b{color:var(--text-1); font-weight:600;}
+
+  /* ---- Console panel ---- */
+  .console{
+    position:fixed; right:1rem; bottom:1rem; z-index:10;
+    width:280px; max-height:calc(100vh - 2rem);
+    overflow-y:auto;
+    background:var(--panel-bg); border:1px solid var(--panel-border);
+    border-radius:10px; backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    padding:.9rem .95rem 1rem;
+    box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  }
+  .console::-webkit-scrollbar{width:6px;}
+  .console::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px;}
+
+  .section-label{
+    font-family:var(--font-mono); font-size:.62rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--text-3-solid);
+    margin:.9rem 0 .5rem;
+  }
+  .section-label:first-child{margin-top:0;}
+
+  .legend-row{display:flex; align-items:center; gap:.55rem; margin:.4rem 0; font-size:.79rem; color:var(--text-2);}
+  .swatch{width:9px; height:9px; border-radius:50%; flex:none;}
+  .swatch.hot{background:var(--phase-hot); box-shadow:0 0 8px var(--phase-hot);}
+  .swatch.warm{background:var(--phase-warm); box-shadow:0 0 8px var(--phase-warm);}
+  .swatch.cold{background:var(--phase-cold); box-shadow:0 0 8px var(--phase-cold);}
+  .swatch.jet{background:var(--jet); box-shadow:0 0 8px var(--jet);}
+  .swatch.bh{background:#fff; box-shadow:0 0 10px #fff;}
+
+  .grad-bar{
+    height:6px; border-radius:3px; margin:.5rem 0 .3rem;
+    background:linear-gradient(90deg, var(--phase-hot), var(--phase-warm) 55%, var(--phase-cold));
+  }
+  .grad-ticks{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:.6rem; color:var(--text-3-solid);}
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:.42rem 0; font-size:.79rem; color:var(--text-2);
+  }
+  .switch{
+    position:relative; width:30px; height:17px; flex:none; cursor:pointer;
+  }
+  .switch input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer;}
+  .switch .track{
+    position:absolute; inset:0; background:rgba(140,158,199,.22);
+    border:1px solid var(--hairline); border-radius:20px; transition:background .15s ease, border-color .15s ease;
+  }
+  .switch .knob{
+    position:absolute; top:2px; left:2px; width:11px; height:11px; border-radius:50%;
+    background:var(--text-2); transition:transform .16s ease, background .16s ease;
+  }
+  .switch input:checked + .track{background:var(--accent-dim); border-color:var(--accent);}
+  .switch input:checked + .track .knob{transform:translateX(13px); background:var(--accent);}
+  .switch input:focus-visible + .track{outline:2px solid var(--accent); outline-offset:2px;}
+
+  .btn-row{display:flex; gap:.4rem; margin:.5rem 0 .2rem;}
+  button{
+    font-family:var(--font-body); font-size:.76rem; color:var(--text-1);
+    background:rgba(140,158,199,.10); border:1px solid var(--hairline);
+    border-radius:6px; padding:.42rem .6rem; cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  button:hover{background:rgba(140,158,199,.18);}
+  button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  button.primary{border-color:var(--accent-dim); color:var(--accent);}
+  button.primary:hover{background:var(--accent-dim);}
+  button.view-btn{flex:1; text-align:center;}
+  button.view-btn.active{border-color:var(--accent); color:var(--accent); background:var(--accent-dim);}
+
+  .speed-row{display:flex; align-items:center; gap:.55rem; margin:.5rem 0 .1rem;}
+  .speed-row input[type=range]{
+    flex:1; accent-color:var(--accent); height:16px;
+  }
+  .speed-val{
+    font-family:var(--font-mono); font-variant-numeric:tabular-nums;
+    font-size:.72rem; color:var(--text-2); width:2.6em; text-align:right;
+  }
+
+  details.info{
+    margin-top:.9rem; border-top:1px solid var(--hairline); padding-top:.6rem;
+  }
+  details.info summary{
+    font-family:var(--font-mono); font-size:.62rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); cursor:pointer;
+    list-style:none; display:flex; align-items:center; gap:.4rem;
+  }
+  details.info summary::-webkit-details-marker{display:none;}
+  details.info summary::before{content:"+"; font-size:.9rem;}
+  details.info[open] summary::before{content:"–";}
+  details.info p{font-size:.76rem; line-height:1.55; color:var(--text-2); margin:.55rem 0;}
+  details.info p b{color:var(--text-1);}
+  details.info .cite{font-family:var(--font-mono); font-size:.65rem; color:var(--text-3-solid); line-height:1.6;}
+
+  @media (max-width: 640px){
+    .console{width:calc(100vw - 1.6rem); left:.8rem; right:.8rem; bottom:.8rem;}
+    .masthead{max-width:calc(100vw - 1.6rem);}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    * { scroll-behavior:auto !important; }
+  }
+</style>
+
+<canvas id="scene" aria-label="Simulation 3D interactive de l'alimentation d'un trou noir supermassif dans NGC 4696"></canvas>
+
+<div class="veil" id="veil">Mise en orbite…</div>
+
+<div id="fallback">
+  <div>
+    <p><b>WebGL indisponible.</b></p>
+    <p>Ce navigateur ne semble pas supporter WebGL, nécessaire pour cette visualisation 3D.</p>
+  </div>
+</div>
+
+<header class="masthead">
+  <p class="masthead-kicker">JWST · NIRSpec — Amas de Centaurus</p>
+  <h1 class="masthead-title">Comment un trou noir supermassif se nourrit</h1>
+  <p class="masthead-sub">Au cœur de <b>NGC 4696</b>, des filaments de gaz multiphasé s'effondrent depuis l'atmosphère chaude de l'amas et alimentent un disque en rotation autour du trou noir central.</p>
+</header>
+
+<div class="console" id="console">
+  <p class="section-label">Légende des phases</p>
+  <div class="legend-row"><span class="swatch hot"></span>Plasma chaud (rayons X)</div>
+  <div class="legend-row"><span class="swatch warm"></span>Gaz ionisé chaud</div>
+  <div class="legend-row"><span class="swatch cold"></span>Gaz moléculaire froid</div>
+  <div class="legend-row"><span class="swatch jet"></span>Jet radio (AGN)</div>
+  <div class="legend-row"><span class="swatch bh"></span>Trou noir supermassif</div>
+  <div class="grad-bar" aria-hidden="true"></div>
+  <div class="grad-ticks"><span>~10⁸ K</span><span>~10³–10⁴ K</span><span>~10–100 K</span></div>
+
+  <p class="section-label">Couches</p>
+  <div class="toggle-row">Atmosphère chaude
+    <label class="switch"><input type="checkbox" id="tg-atmo" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
+  <div class="toggle-row">Filaments en chute
+    <label class="switch"><input type="checkbox" id="tg-fil" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
+  <div class="toggle-row">Disque circumnucléaire
+    <label class="switch"><input type="checkbox" id="tg-disk" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
+  <div class="toggle-row">Jets radio
+    <label class="switch"><input type="checkbox" id="tg-jet" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
+
+  <p class="section-label">Animation</p>
+  <div class="btn-row">
+    <button class="primary" id="btn-play" style="flex:1;">Pause</button>
+    <button id="btn-reset" style="flex:1;">Réinitialiser la vue</button>
+  </div>
+  <div class="speed-row">
+    <input type="range" id="speed" min="0.1" max="3" step="0.05" value="1" aria-label="Vitesse de simulation">
+    <span class="speed-val" id="speed-val">1.0×</span>
+  </div>
+
+  <p class="section-label">Points de vue</p>
+  <div class="btn-row">
+    <button class="view-btn active" id="view-wide">Vue d'ensemble<br><span style="opacity:.6">dizaines de kpc</span></button>
+    <button class="view-btn" id="view-disk">Disque nucléaire<br><span style="opacity:.6">~618 pc</span></button>
+  </div>
+
+  <details class="info">
+    <summary>À propos de cette reconstitution</summary>
+    <p>Cette scène illustre un mécanisme d'alimentation des trous noirs supermassifs : le gaz chaud (10⁸ K) de l'amas se condense en filaments qui, en tombant, perdent leur moment cinétique et rejoignent un <b>disque circumnucléaire</b> en rotation (~618 pc, résolu à 10 pc par JWST/NIRSpec). Ce disque alimente l'accrétion sur le trou noir, qui éjecte des jets radio creusant des cavités dans le gaz chaud — une boucle d'autorégulation.</p>
+    <p><b>Les échelles ne sont pas respectées.</b> Dans la réalité, les filaments s'étendent sur des dizaines de kiloparsecs — environ 50 à 100 fois le rayon du disque nucléaire. Cette reconstitution compresse les échelles et stylise les géométries pour rendre le phénomène observable en un seul regard ; ce n'est pas un rendu littéral des données JWST.</p>
+    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), "JWST reveals how black holes are fed", ApJL. doi:10.3847/2041-8213/ae81ae — structure comparable observée dans NGC 1275 (amas de Persée).</p>
+  </details>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var canvas = document.getElementById('scene');
+  var gl = canvas.getContext('webgl', {antialias:true, alpha:false, powerPreference:'high-performance'});
+  if(!gl){
+    document.getElementById('fallback').classList.add('show');
+    document.getElementById('veil').classList.add('hidden');
+    return;
+  }
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------------------------------------------------------------
+  // Shaders
+  // ---------------------------------------------------------------
+  var VS = [
+    "attribute vec3 aPosition;",
+    "attribute vec3 aColor;",
+    "attribute float aSize;",
+    "uniform mat4 uProj;",
+    "uniform mat4 uView;",
+    "uniform float uPixelRatio;",
+    "uniform float uMaxPointSize;",
+    "varying vec3 vColor;",
+    "varying float vFade;",
+    "void main(){",
+    "  vec4 viewPos = uView * vec4(aPosition, 1.0);",
+    "  gl_Position = uProj * viewPos;",
+    "  float dist = max(-viewPos.z, 0.05);",
+    "  float sizePx = (aSize * 13.0 / dist) * uPixelRatio;",
+    "  gl_PointSize = clamp(sizePx, 1.0, uMaxPointSize);",
+    "  vColor = aColor;",
+    "  vFade = clamp(sizePx / 2.2, 0.0, 1.0);",
+    "}"
+  ].join("\n");
+
+  var FS = [
+    "precision mediump float;",
+    "varying vec3 vColor;",
+    "varying float vFade;",
+    "void main(){",
+    "  vec2 uv = gl_PointCoord * 2.0 - 1.0;",
+    "  float d = dot(uv, uv);",
+    "  if(d > 1.0) discard;",
+    "  float glow = exp(-d * 3.6);",
+    "  gl_FragColor = vec4(vColor * glow, glow * 0.92 * vFade);",
+    "}"
+  ].join("\n");
+
+  function compile(type, src){
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+      console.error(gl.getShaderInfoLog(s));
+    }
+    return s;
+  }
+  var prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  gl.useProgram(prog);
+
+  var locPos = gl.getAttribLocation(prog, 'aPosition');
+  var locCol = gl.getAttribLocation(prog, 'aColor');
+  var locSize = gl.getAttribLocation(prog, 'aSize');
+  var uProj = gl.getUniformLocation(prog, 'uProj');
+  var uView = gl.getUniformLocation(prog, 'uView');
+  var uPixelRatio = gl.getUniformLocation(prog, 'uPixelRatio');
+  var uMaxPointSize = gl.getUniformLocation(prog, 'uMaxPointSize');
+
+  var pointSizeRange = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) || [1,64];
+  var maxPointSize = Math.min(pointSizeRange[1], 34);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.disable(gl.DEPTH_TEST);
+
+  // ---------------------------------------------------------------
+  // Math helpers
+  // ---------------------------------------------------------------
+  function perspective(fovy, aspect, near, far){
+    var f = 1.0 / Math.tan(fovy/2), nf = 1/(near-far);
+    return new Float32Array([
+      f/aspect,0,0,0,
+      0,f,0,0,
+      0,0,(far+near)*nf,-1,
+      0,0,(2*far*near)*nf,0
+    ]);
+  }
+  function lookAt(eye, center, up){
+    var z0=eye[0]-center[0], z1=eye[1]-center[1], z2=eye[2]-center[2];
+    var len=Math.hypot(z0,z1,z2)||1; z0/=len; z1/=len; z2/=len;
+    var x0=up[1]*z2-up[2]*z1, x1=up[2]*z0-up[0]*z2, x2=up[0]*z1-up[1]*z0;
+    len=Math.hypot(x0,x1,x2); if(len===0){x0=x1=x2=0;} else {x0/=len;x1/=len;x2/=len;}
+    var y0=z1*x2-z2*x1, y1=z2*x0-z0*x2, y2=z0*x1-z1*x0;
+    return new Float32Array([
+      x0,y0,z0,0,
+      x1,y1,z1,0,
+      x2,y2,z2,0,
+      -(x0*eye[0]+x1*eye[1]+x2*eye[2]),
+      -(y0*eye[0]+y1*eye[1]+y2*eye[2]),
+      -(z0*eye[0]+z1*eye[1]+z2*eye[2]),
+      1
+    ]);
+  }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function lerpAngle(a,b,t){
+    var d = ((b-a+Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI;
+    return a + d*t;
+  }
+  function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function mix3(c0,c1,t){ return [lerp(c0[0],c1[0],t), lerp(c0[1],c1[1],t), lerp(c0[2],c1[2],t)]; }
+  function hexToRgb(h){
+    var n = parseInt(h.slice(1),16);
+    return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
+  }
+
+  var COL_HOT = hexToRgb('#bfe3ff');
+  var COL_WARM = hexToRgb('#ff9d52');
+  var COL_COLD = hexToRgb('#ef4d8f');
+  var COL_JET = hexToRgb('#b48cff');
+  var COL_BH = hexToRgb('#ffffff');
+
+  // ---------------------------------------------------------------
+  // Particle group helper
+  // ---------------------------------------------------------------
+  function makeGroup(count, dynamicColor){
+    return {
+      count: count,
+      pos: new Float32Array(count*3),
+      col: new Float32Array(count*3),
+      size: new Float32Array(count),
+      dynamicColor: !!dynamicColor,
+      posBuf: gl.createBuffer(),
+      colBuf: gl.createBuffer(),
+      sizeBuf: gl.createBuffer(),
+      colUploaded:false
+    };
+  }
+  function uploadPos(g){
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.posBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, g.pos, gl.DYNAMIC_DRAW);
+  }
+  function uploadCol(g){
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.colBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, g.col, g.dynamicColor ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+  }
+  function uploadSize(g){
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.sizeBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, g.size, gl.DYNAMIC_DRAW);
+  }
+  function drawGroup(g){
+    if(g.count===0) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.posBuf);
+    gl.enableVertexAttribArray(locPos);
+    gl.vertexAttribPointer(locPos, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.colBuf);
+    gl.enableVertexAttribArray(locCol);
+    gl.vertexAttribPointer(locCol, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, g.sizeBuf);
+    gl.enableVertexAttribArray(locSize);
+    gl.vertexAttribPointer(locSize, 1, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.POINTS, 0, g.count);
+  }
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function randUnitDir(){
+    var theta = rand(0, Math.PI*2), z = rand(-1,1), r = Math.sqrt(1-z*z);
+    return [r*Math.cos(theta), z, r*Math.sin(theta)];
+  }
+
+  // ---------------------------------------------------------------
+  // Scene scale constants (stylised, not linear to real pc/kpc — see info panel)
+  // ---------------------------------------------------------------
+  var CAVITY_Y = 4.2, CAVITY_RX = 2.0, CAVITY_RY = 2.7, CAVITY_RZ = 2.0;
+  var DISK_R_MIN = 0.34, DISK_R_MAX = 1.05;
+  var ATMO_R_MIN = 3.6, ATMO_R_MAX = 9.2;
+
+  function insideCavity(x,y,z){
+    var dy1 = y - CAVITY_Y, dy2 = y + CAVITY_Y;
+    var e1 = (x*x)/(CAVITY_RX*CAVITY_RX) + (dy1*dy1)/(CAVITY_RY*CAVITY_RY) + (z*z)/(CAVITY_RZ*CAVITY_RZ);
+    var e2 = (x*x)/(CAVITY_RX*CAVITY_RX) + (dy2*dy2)/(CAVITY_RY*CAVITY_RY) + (z*z)/(CAVITY_RZ*CAVITY_RZ);
+    return e1 < 1.0 || e2 < 1.0;
+  }
+
+  // ---------------- Stars (static distant backdrop) ----------------
+  var STAR_N = 550;
+  var stars = makeGroup(STAR_N, false);
+  for(var i=0;i<STAR_N;i++){
+    var d = randUnitDir(), r = rand(30,60);
+    stars.pos[i*3]=d[0]*r; stars.pos[i*3+1]=d[1]*r; stars.pos[i*3+2]=d[2]*r;
+    var b = rand(0.35,0.9);
+    stars.col[i*3]=b; stars.col[i*3+1]=b; stars.col[i*3+2]=b*1.05;
+    stars.size[i]=rand(0.6,1.4);
+  }
+  uploadPos(stars); uploadCol(stars); uploadSize(stars);
+
+  // ---------------- Hot atmosphere (10^8 K plasma) ----------------
+  var ATMO_N = 2100;
+  var atmo = makeGroup(ATMO_N, false);
+  var atmoBase = new Float32Array(ATMO_N*3);
+  var atmoJitter = new Float32Array(ATMO_N);
+  for(var i=0;i<ATMO_N;i++){
+    var x,y,z,tries=0;
+    do{
+      var d = randUnitDir();
+      var r = ATMO_R_MIN + (ATMO_R_MAX-ATMO_R_MIN)*Math.pow(Math.random(),0.62);
+      x=d[0]*r; y=d[1]*r*0.72; z=d[2]*r;
+      tries++;
+    } while(insideCavity(x,y,z) && tries<18);
+    atmoBase[i*3]=x; atmoBase[i*3+1]=y; atmoBase[i*3+2]=z;
+    atmoJitter[i]=Math.random()*Math.PI*2;
+    var t = clamp((Math.hypot(x,y,z)-ATMO_R_MIN)/(ATMO_R_MAX-ATMO_R_MIN), 0, 1);
+    var c = mix3(COL_WARM, COL_HOT, clamp(t*1.3,0,1));
+    atmo.col[i*3]=c[0]*0.55; atmo.col[i*3+1]=c[1]*0.55; atmo.col[i*3+2]=c[2]*0.6;
+    atmo.size[i]=rand(1.1,2.4);
+  }
+  uploadCol(atmo); uploadSize(atmo);
+
+  // ---------------- Filaments ----------------
+  var FIL_STRANDS = 8, FIL_PER = 300, FIL_N = FIL_STRANDS*FIL_PER;
+  var filaments = makeGroup(FIL_N, true);
+  var filStrand = new Int16Array(FIL_N);
+  var filPhase = new Float32Array(FIL_N);
+  var filSpeed = new Float32Array(FIL_N);
+  var strands = [];
+  for(var s=0;s<FIL_STRANDS;s++){
+    var dir;
+    do{ dir = randUnitDir(); } while(Math.abs(dir[1]) > 0.72);
+    var r0 = rand(7.6, 9.0);
+    var p0 = [dir[0]*r0, dir[1]*r0, dir[2]*r0];
+    var azimuth0 = Math.atan2(p0[2], p0[0]);
+    var p3r = DISK_R_MIN + rand(0.05,0.25);
+    var p3 = [p3r*Math.cos(azimuth0), rand(-0.05,0.05), p3r*Math.sin(azimuth0)];
+    var mid1 = rand(0.55,0.7), mid2 = rand(0.25,0.4);
+    var p1 = [
+      p0[0]*mid1 + rand(-1.4,1.4), p0[1]*mid1 + rand(-1.0,1.0), p0[2]*mid1 + rand(-1.4,1.4)
+    ];
+    var p2 = [
+      p0[0]*mid2 + rand(-1.0,1.0), p0[1]*mid2*0.5 + rand(-0.6,0.6), p0[2]*mid2 + rand(-1.0,1.0)
+    ];
+    strands.push({p0:p0,p1:p1,p2:p2,p3:p3, spiral: rand(0.7,1.6) * (Math.random()<0.5?1:-1)});
+  }
+  function bezier(strand, t){
+    var mt = 1-t;
+    var a = mt*mt*mt, b = 3*mt*mt*t, c = 3*mt*t*t, d = t*t*t;
+    var x = a*strand.p0[0]+b*strand.p1[0]+c*strand.p2[0]+d*strand.p3[0];
+    var y = a*strand.p0[1]+b*strand.p1[1]+c*strand.p2[1]+d*strand.p3[1];
+    var z = a*strand.p0[2]+b*strand.p1[2]+c*strand.p2[2]+d*strand.p3[2];
+    var ang = t*t*strand.spiral*Math.PI*2;
+    var ca=Math.cos(ang), sa=Math.sin(ang);
+    var xr = x*ca - z*sa, zr = x*sa + z*ca;
+    return [xr, y, zr];
+  }
+  for(var i=0;i<FIL_N;i++){
+    filStrand[i] = i % FIL_STRANDS;
+    filPhase[i] = Math.random();
+    filSpeed[i] = rand(0.75,1.25);
+    filaments.size[i] = rand(1.3,2.6);
+  }
+  uploadSize(filaments);
+
+  // ---------------- Circumnuclear disk ----------------
+  var DISK_N = 1500;
+  var disk = makeGroup(DISK_N, false);
+  var diskR = new Float32Array(DISK_N);
+  var diskAngle0 = new Float32Array(DISK_N);
+  var diskY = new Float32Array(DISK_N);
+  for(var i=0;i<DISK_N;i++){
+    var r = DISK_R_MIN + (DISK_R_MAX-DISK_R_MIN)*Math.sqrt(Math.random());
+    diskR[i]=r;
+    diskAngle0[i]=rand(0,Math.PI*2);
+    diskY[i]=rand(-1,1)*0.045*(1.4-r/DISK_R_MAX);
+    var t = clamp((r-DISK_R_MIN)/(DISK_R_MAX-DISK_R_MIN), 0, 1);
+    var c = mix3(COL_WARM, COL_COLD, t);
+    disk.col[i*3]=c[0]; disk.col[i*3+1]=c[1]; disk.col[i*3+2]=c[2];
+    disk.size[i]=rand(1.4,2.6);
+  }
+  uploadCol(disk); uploadSize(disk);
+
+  // ---------------- Accretion ring (near black hole) ----------------
+  var ACC_N = 160;
+  var accretion = makeGroup(ACC_N, false);
+  var accR = new Float32Array(ACC_N);
+  var accAngle0 = new Float32Array(ACC_N);
+  for(var i=0;i<ACC_N;i++){
+    accR[i]=rand(0.1,0.28);
+    accAngle0[i]=rand(0,Math.PI*2);
+    var c = mix3(COL_HOT, COL_WARM, Math.random()*0.6);
+    accretion.col[i*3]=c[0]; accretion.col[i*3+1]=c[1]; accretion.col[i*3+2]=c[2];
+    accretion.size[i]=rand(1.0,1.8);
+  }
+  uploadCol(accretion); uploadSize(accretion);
+
+  // ---------------- Jets ----------------
+  var JET_N_EACH = 340, JET_N = JET_N_EACH*2;
+  var jets = makeGroup(JET_N, true);
+  var jetPole = new Int8Array(JET_N);
+  var jetPhase = new Float32Array(JET_N);
+  var jetSpeed = new Float32Array(JET_N);
+  var jetAz = new Float32Array(JET_N);
+  var jetSpread = new Float32Array(JET_N);
+  for(var i=0;i<JET_N;i++){
+    jetPole[i] = i < JET_N_EACH ? 1 : -1;
+    jetPhase[i] = Math.random();
+    jetSpeed[i] = rand(0.7,1.3);
+    jetAz[i] = rand(0,Math.PI*2);
+    jetSpread[i] = rand(0.02,0.16);
+    jets.size[i] = rand(1.0,2.0);
+  }
+  uploadSize(jets);
+
+  // ---------------- Black hole marker ----------------
+  var bh = makeGroup(2, false);
+  bh.col[0]=1;bh.col[1]=1;bh.col[2]=1;
+  bh.col[3]=0.75;bh.col[4]=0.85;bh.col[5]=1.0;
+  bh.size[0]=3.0; bh.size[1]=9.0;
+  uploadCol(bh); uploadSize(bh);
+
+  // ---------------------------------------------------------------
+  // Camera
+  // ---------------------------------------------------------------
+  var cam = { theta: 0.9, phi: 1.15, radius: 11.5, vTheta:0, vPhi:0 };
+  var WIDE = { theta:0.9, phi:1.15, radius:11.5 };
+  var CLOSE = { theta:2.2, phi:0.55, radius:2.35 };
+  var transition = null;
+  var isDragging = false, lastX=0, lastY=0;
+  var pointers = new Map();
+
+  function setDragging(v){ isDragging = v; canvas.classList.toggle('dragging', v); }
+
+  canvas.addEventListener('pointerdown', function(e){
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(pointers.size === 1){ setDragging(true); lastX=e.clientX; lastY=e.clientY; }
+  });
+  canvas.addEventListener('pointermove', function(e){
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    if(pointers.size === 2){
+      var pts = Array.from(pointers.values());
+      var d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+      if(canvas._pinchD){
+        var ratio = canvas._pinchD / Math.max(d,1);
+        cam.radius = clamp(cam.radius*ratio, 1.6, 18);
+      }
+      canvas._pinchD = d;
+      return;
+    }
+    if(!isDragging) return;
+    var dx = e.clientX-lastX, dy = e.clientY-lastY;
+    lastX=e.clientX; lastY=e.clientY;
+    cam.theta -= dx*0.0048; cam.phi -= dy*0.0048;
+    cam.phi = clamp(cam.phi, 0.16, Math.PI-0.16);
+    cam.vTheta = -dx*0.0048; cam.vPhi = -dy*0.0048;
+    transition = null;
+  });
+  function endPointer(e){
+    pointers.delete(e.pointerId);
+    canvas._pinchD = null;
+    if(pointers.size === 0) setDragging(false);
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('wheel', function(e){
+    e.preventDefault();
+    cam.radius = clamp(cam.radius*Math.pow(1.0016, e.deltaY), 1.6, 18);
+    transition = null;
+  }, {passive:false});
+
+  function flyTo(target, activeBtn){
+    var dur = reduceMotion ? 1 : 950;
+    transition = {
+      startTheta:cam.theta, startPhi:cam.phi, startRadius:cam.radius,
+      endTheta:target.theta, endPhi:target.phi, endRadius:target.radius,
+      t0: performance.now(), dur: dur
+    };
+    document.querySelectorAll('.view-btn').forEach(function(b){ b.classList.remove('active'); });
+    if(activeBtn) activeBtn.classList.add('active');
+  }
+  function setAtmoVisible(v){
+    layerVisible.atmo = v;
+    document.getElementById('tg-atmo').checked = v;
+  }
+  document.getElementById('view-wide').addEventListener('click', function(e){ flyTo(WIDE, e.currentTarget); setAtmoVisible(true); });
+  document.getElementById('view-disk').addEventListener('click', function(e){ flyTo(CLOSE, e.currentTarget); setAtmoVisible(false); });
+  document.getElementById('btn-reset').addEventListener('click', function(){
+    flyTo(WIDE, document.getElementById('view-wide'));
+    setAtmoVisible(true);
+  });
+
+  // ---------------------------------------------------------------
+  // UI: layers, play/pause, speed
+  // ---------------------------------------------------------------
+  var layerVisible = { atmo:true, fil:true, disk:true, jet:true };
+  document.getElementById('tg-atmo').addEventListener('change', function(e){ layerVisible.atmo = e.target.checked; });
+  document.getElementById('tg-fil').addEventListener('change', function(e){ layerVisible.fil = e.target.checked; });
+  document.getElementById('tg-disk').addEventListener('change', function(e){ layerVisible.disk = e.target.checked; });
+  document.getElementById('tg-jet').addEventListener('change', function(e){ layerVisible.jet = e.target.checked; });
+
+  var playing = true;
+  var btnPlay = document.getElementById('btn-play');
+  btnPlay.addEventListener('click', function(){
+    playing = !playing;
+    btnPlay.textContent = playing ? 'Pause' : 'Lecture';
+  });
+  var speed = 1.0;
+  var speedInput = document.getElementById('speed');
+  var speedVal = document.getElementById('speed-val');
+  speedInput.addEventListener('input', function(e){
+    speed = parseFloat(e.target.value);
+    speedVal.textContent = speed.toFixed(2).replace(/0$/,'').replace(/\.$/,'.0') + '×';
+  });
+  if(reduceMotion){ speed = 0.4; speedInput.value = 0.4; speedVal.textContent = '0.40×'; }
+
+  // ---------------------------------------------------------------
+  // Resize
+  // ---------------------------------------------------------------
+  var proj = perspective(50*Math.PI/180, 1, 0.1, 80);
+  function resize(){
+    var dpr = Math.min(window.devicePixelRatio||1, 2);
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
+    gl.viewport(0,0,canvas.width, canvas.height);
+    proj = perspective(50*Math.PI/180, w/h, 0.1, 80);
+    gl.uniform1f(uPixelRatio, dpr);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  gl.uniform1f(uMaxPointSize, maxPointSize);
+
+  // ---------------------------------------------------------------
+  // Main loop
+  // ---------------------------------------------------------------
+  var simTime = 0, lastFrame = performance.now();
+
+  function updateCamera(now){
+    if(transition){
+      var t = clamp((now-transition.t0)/transition.dur, 0, 1);
+      var e = easeInOutCubic(t);
+      cam.theta = lerpAngle(transition.startTheta, transition.endTheta, e);
+      cam.phi = lerp(transition.startPhi, transition.endPhi, e);
+      cam.radius = lerp(transition.startRadius, transition.endRadius, e);
+      if(t>=1) transition = null;
+    } else if(!isDragging){
+      cam.theta += cam.vTheta; cam.phi += cam.vPhi;
+      cam.phi = clamp(cam.phi, 0.16, Math.PI-0.16);
+      cam.vTheta *= 0.9; cam.vPhi *= 0.9;
+    }
+  }
+
+  function frame(now){
+    var dt = Math.min((now-lastFrame)/1000, 0.05);
+    lastFrame = now;
+    if(playing) simTime += dt*speed;
+
+    updateCamera(now);
+
+    var eye = [
+      cam.radius*Math.sin(cam.phi)*Math.cos(cam.theta),
+      cam.radius*Math.cos(cam.phi),
+      cam.radius*Math.sin(cam.phi)*Math.sin(cam.theta)
+    ];
+    var view = lookAt(eye, [0,0,0], [0,1,0]);
+
+    // --- update atmosphere jitter ---
+    for(var i=0;i<ATMO_N;i++){
+      var wob = Math.sin(simTime*0.4 + atmoJitter[i])*0.06;
+      atmo.pos[i*3] = atmoBase[i*3]*(1+wob*0.02) ;
+      atmo.pos[i*3+1] = atmoBase[i*3+1] + wob*0.3;
+      atmo.pos[i*3+2] = atmoBase[i*3+2]*(1+wob*0.02);
+    }
+    uploadPos(atmo);
+
+    // --- update filaments ---
+    for(var i=0;i<FIL_N;i++){
+      var t = (filPhase[i] + simTime*0.055*filSpeed[i]) % 1;
+      var strand = strands[filStrand[i]];
+      var p = bezier(strand, t);
+      filaments.pos[i*3]=p[0]; filaments.pos[i*3+1]=p[1]; filaments.pos[i*3+2]=p[2];
+      var c;
+      if(t<0.5) c = mix3(COL_HOT, COL_WARM, t*2);
+      else c = mix3(COL_WARM, COL_COLD, (t-0.5)*2);
+      filaments.col[i*3]=c[0]; filaments.col[i*3+1]=c[1]; filaments.col[i*3+2]=c[2];
+      var fade = Math.min(1, t*9) * Math.min(1, (1-t)*9);
+      filaments.size[i] = (1.3 + t*1.3) * fade;
+    }
+    uploadPos(filaments); uploadCol(filaments); uploadSize(filaments);
+
+    // --- update disk (differential Keplerian-like rotation) ---
+    for(var i=0;i<DISK_N;i++){
+      var r = diskR[i];
+      var omega = 0.62 / Math.sqrt(r);
+      var ang = diskAngle0[i] + simTime*omega;
+      disk.pos[i*3] = r*Math.cos(ang);
+      disk.pos[i*3+1] = diskY[i];
+      disk.pos[i*3+2] = r*Math.sin(ang);
+    }
+    uploadPos(disk);
+
+    for(var i=0;i<ACC_N;i++){
+      var r = accR[i];
+      var omega = 1.5/Math.sqrt(r);
+      var ang = accAngle0[i] + simTime*omega;
+      accretion.pos[i*3] = r*Math.cos(ang);
+      accretion.pos[i*3+1] = (Math.sin(ang*3+i)*0.015);
+      accretion.pos[i*3+2] = r*Math.sin(ang);
+    }
+    uploadPos(accretion);
+
+    // --- update jets ---
+    for(var i=0;i<JET_N;i++){
+      var t = (jetPhase[i] + simTime*0.35*jetSpeed[i]) % 1;
+      var travel = 0.15 + t*6.3;
+      var spread = jetSpread[i]*t*t*6;
+      jets.pos[i*3] = Math.cos(jetAz[i])*spread;
+      jets.pos[i*3+1] = jetPole[i]*travel;
+      jets.pos[i*3+2] = Math.sin(jetAz[i])*spread;
+      var c = mix3(COL_JET, [1,1,1], Math.max(0,0.5-t*0.7));
+      jets.col[i*3]=c[0]; jets.col[i*3+1]=c[1]; jets.col[i*3+2]=c[2];
+      var fade = Math.min(1,t*10) * (1-t*0.75);
+      jets.size[i] = (1.0 + (1-t)*1.4) * fade;
+    }
+    uploadPos(jets); uploadCol(jets); uploadSize(jets);
+
+    // --- render ---
+    gl.clearColor(0.02,0.028,0.052,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniformMatrix4fv(uProj, false, proj);
+    gl.uniformMatrix4fv(uView, false, view);
+
+    drawGroup(stars);
+    if(layerVisible.atmo) drawGroup(atmo);
+    if(layerVisible.fil) drawGroup(filaments);
+    if(layerVisible.disk){ drawGroup(disk); drawGroup(accretion); }
+    if(layerVisible.jet) drawGroup(jets);
+    drawGroup(bh);
+
+    requestAnimationFrame(frame);
+  }
+
+  document.getElementById('veil').classList.add('hidden');
+  requestAnimationFrame(frame);
+
+})();
+</script>
