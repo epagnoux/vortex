@@ -517,7 +517,7 @@
     var t = clamp((r-DISK_R_MIN)/(DISK_R_MAX-DISK_R_MIN), 0, 1);
     var c = mix3(COL_WARM, COL_COLD, t);
     disk.col[i*3]=c[0]; disk.col[i*3+1]=c[1]; disk.col[i*3+2]=c[2];
-    disk.size[i]=rand(1.4,2.6);
+    disk.size[i]=rand(1.0,1.9);
   }
   uploadCol(disk); uploadSize(disk);
 
@@ -534,6 +534,20 @@
     accretion.size[i]=rand(1.0,1.8);
   }
   uploadCol(accretion); uploadSize(accretion);
+
+  // ---------------- Boundary marker ring (618 pc CND edge) ----------------
+  var RING_N = 150;
+  var boundaryRing = makeGroup(RING_N, false);
+  var COL_ACCENT = hexToRgb('#5fd4c8');
+  for(var i=0;i<RING_N;i++){
+    var a = (i/RING_N)*Math.PI*2;
+    boundaryRing.pos[i*3] = Math.cos(a)*DISK_R_MAX;
+    boundaryRing.pos[i*3+1] = 0;
+    boundaryRing.pos[i*3+2] = Math.sin(a)*DISK_R_MAX;
+    boundaryRing.col[i*3]=COL_ACCENT[0]; boundaryRing.col[i*3+1]=COL_ACCENT[1]; boundaryRing.col[i*3+2]=COL_ACCENT[2];
+    boundaryRing.size[i] = 1.15;
+  }
+  uploadPos(boundaryRing); uploadCol(boundaryRing); uploadSize(boundaryRing);
 
   // ---------------- Jets ----------------
   var JET_N_EACH = 340, JET_N = JET_N_EACH*2;
@@ -565,7 +579,7 @@
   // ---------------------------------------------------------------
   var cam = { theta: 0.9, phi: 1.15, radius: 11.5, vTheta:0, vPhi:0 };
   var WIDE = { theta:0.9, phi:1.15, radius:11.5 };
-  var CLOSE = { theta:2.2, phi:0.55, radius:2.35 };
+  var CLOSE = { theta:2.2, phi:0.42, radius:3.4 };
   var transition = null;
   var isDragging = false, lastX=0, lastY=0;
   var pointers = new Map();
@@ -775,7 +789,9 @@
     drawGroup(stars);
     if(layerVisible.atmo) drawGroup(atmo);
     if(layerVisible.fil) drawGroup(filaments);
-    if(layerVisible.disk){ drawGroup(disk); drawGroup(accretion); }
+    if(layerVisible.disk){
+      drawGroup(disk); drawGroup(accretion); drawGroup(boundaryRing);
+    }
     if(layerVisible.jet) drawGroup(jets);
     drawGroup(bh);
 
