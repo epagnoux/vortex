@@ -7,7 +7,6 @@
     --hairline: rgba(140,158,199,0.30);
     --text-1:#e9edf7;
     --text-2:#9aa6c4;
-    --text-3:#68729176;
     --text-3-solid:#6b7594;
     --phase-hot:#bfe3ff;
     --phase-warm:#ff9d52;
@@ -46,7 +45,6 @@
 
   a{color:var(--accent);}
 
-  /* ---- Masthead ---- */
   .masthead{
     position:fixed; top:0; left:0; z-index:10;
     padding:1.1rem 1.3rem .9rem;
@@ -68,10 +66,9 @@
   }
   .masthead-sub b{color:var(--text-1); font-weight:600;}
 
-  /* ---- Console panel ---- */
   .console{
     position:fixed; right:1rem; bottom:1rem; z-index:10;
-    width:280px; max-height:calc(100vh - 2rem);
+    width:290px; max-height:calc(100vh - 2rem);
     overflow-y:auto;
     background:var(--panel-bg); border:1px solid var(--panel-border);
     border-radius:10px; backdrop-filter:blur(14px) saturate(140%);
@@ -82,12 +79,20 @@
   .console::-webkit-scrollbar{width:6px;}
   .console::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px;}
 
+  .lang-row{display:flex; align-items:center; gap:.5rem; margin-bottom:.35rem;}
+  .lang-row select{
+    flex:1; background:rgba(140,158,199,.10); border:1px solid var(--hairline);
+    color:var(--text-1); border-radius:6px; padding:.32rem .4rem;
+    font-family:var(--font-body); font-size:.78rem;
+  }
+  .lang-row select:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .lang-row select option{background:#0c111f; color:#e9edf7;}
+
   .section-label{
     font-family:var(--font-mono); font-size:.62rem; letter-spacing:.14em;
     text-transform:uppercase; color:var(--text-3-solid);
     margin:.9rem 0 .5rem;
   }
-  .section-label:first-child{margin-top:0;}
 
   .legend-row{display:flex; align-items:center; gap:.55rem; margin:.4rem 0; font-size:.79rem; color:var(--text-2);}
   .swatch{width:9px; height:9px; border-radius:50%; flex:none;}
@@ -104,12 +109,10 @@
   .grad-ticks{display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:.6rem; color:var(--text-3-solid);}
 
   .toggle-row{
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; align-items:center; justify-content:space-between; gap:.5rem;
     margin:.42rem 0; font-size:.79rem; color:var(--text-2);
   }
-  .switch{
-    position:relative; width:30px; height:17px; flex:none; cursor:pointer;
-  }
+  .switch{position:relative; width:30px; height:17px; flex:none; cursor:pointer;}
   .switch input{position:absolute; inset:0; opacity:0; margin:0; cursor:pointer;}
   .switch .track{
     position:absolute; inset:0; background:rgba(140,158,199,.22);
@@ -138,17 +141,13 @@
   button.view-btn.active{border-color:var(--accent); color:var(--accent); background:var(--accent-dim);}
 
   .speed-row{display:flex; align-items:center; gap:.55rem; margin:.5rem 0 .1rem;}
-  .speed-row input[type=range]{
-    flex:1; accent-color:var(--accent); height:16px;
-  }
+  .speed-row input[type=range]{flex:1; accent-color:var(--accent); height:16px;}
   .speed-val{
     font-family:var(--font-mono); font-variant-numeric:tabular-nums;
     font-size:.72rem; color:var(--text-2); width:2.6em; text-align:right;
   }
 
-  details.info{
-    margin-top:.9rem; border-top:1px solid var(--hairline); padding-top:.6rem;
-  }
+  details.info{margin-top:.9rem; border-top:1px solid var(--hairline); padding-top:.6rem;}
   details.info summary{
     font-family:var(--font-mono); font-size:.62rem; letter-spacing:.14em;
     text-transform:uppercase; color:var(--accent); cursor:pointer;
@@ -161,78 +160,110 @@
   details.info p b{color:var(--text-1);}
   details.info .cite{font-family:var(--font-mono); font-size:.65rem; color:var(--text-3-solid); line-height:1.6;}
 
+  .dimmed{opacity:.32; pointer-events:none; transition:opacity .25s ease;}
+
   @media (max-width: 640px){
     .console{width:calc(100vw - 1.6rem); left:.8rem; right:.8rem; bottom:.8rem;}
     .masthead{max-width:calc(100vw - 1.6rem);}
   }
-
   @media (prefers-reduced-motion: reduce){
     * { scroll-behavior:auto !important; }
   }
 </style>
 
-<canvas id="scene" aria-label="Simulation 3D interactive de l'alimentation d'un trou noir supermassif dans NGC 4696"></canvas>
+<canvas id="scene" aria-label="NGC 4696"></canvas>
 
-<div class="veil" id="veil">Mise en orbite…</div>
+<div class="veil" id="veil">…</div>
 
 <div id="fallback">
   <div>
-    <p><b>WebGL indisponible.</b></p>
-    <p>Ce navigateur ne semble pas supporter WebGL, nécessaire pour cette visualisation 3D.</p>
+    <p><b id="fb-title">WebGL indisponible.</b></p>
+    <p id="fb-body">Ce navigateur ne semble pas supporter WebGL, nécessaire à cette visualisation 3D.</p>
   </div>
 </div>
 
-<header class="masthead">
-  <p class="masthead-kicker">JWST · NIRSpec — Amas de Centaurus</p>
-  <h1 class="masthead-title">Comment un trou noir supermassif se nourrit</h1>
-  <p class="masthead-sub">Au cœur de <b>NGC 4696</b>, des filaments de gaz multiphasé s'effondrent depuis l'atmosphère chaude de l'amas et alimentent un disque en rotation autour du trou noir central.</p>
+<header class="masthead" id="masthead">
+  <p class="masthead-kicker" id="m-kicker"></p>
+  <h1 class="masthead-title" id="m-title"></h1>
+  <p class="masthead-sub" id="m-sub"></p>
 </header>
 
 <div class="console" id="console">
-  <p class="section-label">Légende des phases</p>
-  <div class="legend-row"><span class="swatch hot"></span>Plasma chaud (rayons X)</div>
-  <div class="legend-row"><span class="swatch warm"></span>Gaz ionisé chaud</div>
-  <div class="legend-row"><span class="swatch cold"></span>Gaz moléculaire froid</div>
-  <div class="legend-row"><span class="swatch jet"></span>Jet radio (AGN)</div>
-  <div class="legend-row"><span class="swatch bh"></span>Trou noir supermassif</div>
+  <div class="lang-row">
+    <span aria-hidden="true">🌐</span>
+    <select id="lang-select" aria-label="Language">
+      <option value="en">English</option>
+      <option value="fr">Français</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+      <option value="de">Deutsch</option>
+      <option value="ru">Русский</option>
+      <option value="zh">中文</option>
+      <option value="ja">日本語</option>
+      <option value="ar">العربية</option>
+      <option value="hi">हिन्दी</option>
+    </select>
+  </div>
+
+  <p class="section-label" id="lbl-render"></p>
+  <div class="btn-row">
+    <button class="view-btn active" id="mode-schema"></button>
+    <button class="view-btn" id="mode-art"></button>
+  </div>
+
+  <div id="legend-section">
+  <p class="section-label" id="lbl-legend"></p>
+  <div class="legend-row"><span class="swatch hot"></span><span id="ph-hot"></span></div>
+  <div class="legend-row"><span class="swatch warm"></span><span id="ph-warm"></span></div>
+  <div class="legend-row"><span class="swatch cold"></span><span id="ph-cold"></span></div>
+  <div class="legend-row"><span class="swatch jet"></span><span id="ph-jet"></span></div>
+  <div class="legend-row"><span class="swatch bh"></span><span id="ph-bh"></span></div>
   <div class="grad-bar" aria-hidden="true"></div>
   <div class="grad-ticks"><span>~10⁸ K</span><span>~10³–10⁴ K</span><span>~10–100 K</span></div>
+  </div>
 
-  <p class="section-label">Couches</p>
-  <div class="toggle-row">Atmosphère chaude
+  <p class="section-label" id="lbl-layers"></p>
+  <div class="toggle-row"><span id="lb-atmo"></span>
     <label class="switch"><input type="checkbox" id="tg-atmo" checked><span class="track"><span class="knob"></span></span></label>
   </div>
-  <div class="toggle-row">Filaments en chute
+  <div class="toggle-row"><span id="lb-fil"></span>
     <label class="switch"><input type="checkbox" id="tg-fil" checked><span class="track"><span class="knob"></span></span></label>
   </div>
-  <div class="toggle-row">Disque circumnucléaire
+  <div class="toggle-row" id="row-disk"><span id="lb-disk"></span>
     <label class="switch"><input type="checkbox" id="tg-disk" checked><span class="track"><span class="knob"></span></span></label>
   </div>
-  <div class="toggle-row">Jets radio
+  <div class="toggle-row"><span id="lb-jet"></span>
     <label class="switch"><input type="checkbox" id="tg-jet" checked><span class="track"><span class="knob"></span></span></label>
   </div>
+  <div class="toggle-row"><span id="lb-gal"></span>
+    <label class="switch"><input type="checkbox" id="tg-gal" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
+  <div class="toggle-row"><span id="lb-uni"></span>
+    <label class="switch"><input type="checkbox" id="tg-uni" checked><span class="track"><span class="knob"></span></span></label>
+  </div>
 
-  <p class="section-label">Animation</p>
+  <p class="section-label" id="lbl-anim"></p>
   <div class="btn-row">
-    <button class="primary" id="btn-play" style="flex:1;">Pause</button>
-    <button id="btn-reset" style="flex:1;">Réinitialiser la vue</button>
+    <button class="primary" id="btn-play" style="flex:1;"></button>
+    <button id="btn-reset" style="flex:1;"></button>
   </div>
   <div class="speed-row">
-    <input type="range" id="speed" min="0.1" max="3" step="0.05" value="1" aria-label="Vitesse de simulation">
+    <input type="range" id="speed" min="0.1" max="3" step="0.05" value="1" aria-label="Speed">
     <span class="speed-val" id="speed-val">1.0×</span>
   </div>
 
-  <p class="section-label">Points de vue</p>
+  <p class="section-label" id="lbl-views"></p>
   <div class="btn-row">
-    <button class="view-btn active" id="view-wide">Vue d'ensemble<br><span style="opacity:.6">dizaines de kpc</span></button>
-    <button class="view-btn" id="view-disk">Disque nucléaire<br><span style="opacity:.6">~618 pc</span></button>
+    <button class="view-btn active" id="view-wide"></button>
+    <button class="view-btn" id="view-disk"></button>
   </div>
 
   <details class="info">
-    <summary>À propos de cette reconstitution</summary>
-    <p>Cette scène illustre un mécanisme d'alimentation des trous noirs supermassifs : le gaz chaud (10⁸ K) de l'amas se condense en filaments qui, en tombant, perdent leur moment cinétique et rejoignent un <b>disque circumnucléaire</b> en rotation (~618 pc, résolu à 10 pc par JWST/NIRSpec). Ce disque alimente l'accrétion sur le trou noir, qui éjecte des jets radio creusant des cavités dans le gaz chaud — une boucle d'autorégulation.</p>
-    <p><b>Les échelles ne sont pas respectées.</b> Dans la réalité, les filaments s'étendent sur des dizaines de kiloparsecs — environ 50 à 100 fois le rayon du disque nucléaire. Cette reconstitution compresse les échelles et stylise les géométries pour rendre le phénomène observable en un seul regard ; ce n'est pas un rendu littéral des données JWST.</p>
-    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), "JWST reveals how black holes are fed", ApJL. doi:10.3847/2041-8213/ae81ae — structure comparable observée dans NGC 1275 (amas de Persée).</p>
+    <summary id="about-summary"></summary>
+    <p id="about-1"></p>
+    <p id="about-2"></p>
+    <p id="about-3"></p>
+    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), "JWST reveals how black holes are fed", ApJL. doi:10.3847/2041-8213/ae81ae — NGC 1275 (Perseus): similar structure.</p>
   </details>
 </div>
 
@@ -240,6 +271,239 @@
 (function(){
   "use strict";
 
+  // ---------------------------------------------------------------
+  // i18n
+  // ---------------------------------------------------------------
+  var I18N = {
+    en: {
+      doc:"NGC 4696 — How a black hole is fed",
+      kicker:"JWST · NIRSpec — Centaurus Cluster",
+      title:"How a supermassive black hole is fed",
+      sub:"At the heart of <b>NGC 4696</b>, filaments of multiphase gas fall in from the cluster's hot atmosphere and feed a rotating disk around the central black hole.",
+      render:"Rendering", mSchema:"Diagram", mSchemaSub:"educational", mArt:"Artistic view", mArtSub:"gravitational lensing",
+      legend:"Phase legend",
+      phHot:"Hot plasma (X-rays)", phWarm:"Warm ionized gas", phCold:"Cold molecular gas", phJet:"Radio jet (AGN)", phBH:"Supermassive black hole",
+      layers:"Layers", lAtmo:"Hot atmosphere", lFil:"Infalling filaments", lDisk:"Circumnuclear disk", lJet:"Radio jets", lGal:"Host galaxy (NGC 4696)", lUni:"Cluster galaxies",
+      anim:"Animation", pause:"Pause", play:"Play", reset:"Reset view",
+      views:"Viewpoints", vWide:"Overview", vWideSub:"tens of kpc", vDisk:"Nuclear disk",
+      about:"About this reconstruction",
+      a1:"This scene illustrates how supermassive black holes are fed: hot gas (10⁸ K) in the cluster condenses into filaments that fall inward, lose angular momentum and join a rotating <b>circumnuclear disk</b> (~618 pc, resolved at 10 pc by JWST/NIRSpec). The disk feeds accretion onto the black hole, which launches radio jets that carve cavities in the hot gas — a self-regulating loop.",
+      a2:"<b>Scales are compressed.</b> The filaments actually span tens of kiloparsecs; the host galaxy and cluster are far larger. This reconstruction compresses scales so the whole phenomenon fits in one view — it is not a literal rendering of the JWST data.",
+      a3:"<b>Artistic view:</b> light rays are genuinely bent by gravity (Schwarzschild black hole): the disk appears arched above and below the shadow, with the brightness asymmetry of the relativistic Doppler effect. It is an illustration of the central black hole, not a simulation of the paper's data.",
+      veil:"Entering orbit…", fbT:"WebGL unavailable.", fbB:"This browser does not seem to support WebGL, which this 3D visualization requires."
+    },
+    fr: {
+      doc:"NGC 4696 — Comment un trou noir se nourrit",
+      kicker:"JWST · NIRSpec — Amas de Centaurus",
+      title:"Comment un trou noir supermassif se nourrit",
+      sub:"Au cœur de <b>NGC 4696</b>, des filaments de gaz multiphasé s'effondrent depuis l'atmosphère chaude de l'amas et alimentent un disque en rotation autour du trou noir central.",
+      render:"Rendu", mSchema:"Schéma", mSchemaSub:"pédagogique", mArt:"Vue artistique", mArtSub:"lentille gravitationnelle",
+      legend:"Légende des phases",
+      phHot:"Plasma chaud (rayons X)", phWarm:"Gaz ionisé chaud", phCold:"Gaz moléculaire froid", phJet:"Jet radio (AGN)", phBH:"Trou noir supermassif",
+      layers:"Couches", lAtmo:"Atmosphère chaude", lFil:"Filaments en chute", lDisk:"Disque circumnucléaire", lJet:"Jets radio", lGal:"Galaxie hôte (NGC 4696)", lUni:"Galaxies de l'amas",
+      anim:"Animation", pause:"Pause", play:"Lecture", reset:"Réinitialiser la vue",
+      views:"Points de vue", vWide:"Vue d'ensemble", vWideSub:"dizaines de kpc", vDisk:"Disque nucléaire",
+      about:"À propos de cette reconstitution",
+      a1:"Cette scène illustre un mécanisme d'alimentation des trous noirs supermassifs : le gaz chaud (10⁸ K) de l'amas se condense en filaments qui, en tombant, perdent leur moment cinétique et rejoignent un <b>disque circumnucléaire</b> en rotation (~618 pc, résolu à 10 pc par JWST/NIRSpec). Ce disque alimente l'accrétion sur le trou noir, qui éjecte des jets radio creusant des cavités dans le gaz chaud — une boucle d'autorégulation.",
+      a2:"<b>Les échelles sont compressées.</b> Les filaments s'étendent en réalité sur des dizaines de kiloparsecs ; la galaxie hôte et l'amas sont bien plus vastes. Cette reconstitution compresse les échelles pour rendre le phénomène observable d'un seul regard ; ce n'est pas un rendu littéral des données JWST.",
+      a3:"<b>Vue artistique :</b> les rayons lumineux y sont réellement courbés par la gravité (trou noir de Schwarzschild) : le disque apparaît arqué au-dessus et en dessous de l'ombre, avec l'asymétrie de brillance de l'effet Doppler relativiste. C'est une illustration du trou noir central, pas une simulation des données de l'article.",
+      veil:"Mise en orbite…", fbT:"WebGL indisponible.", fbB:"Ce navigateur ne semble pas supporter WebGL, nécessaire à cette visualisation 3D."
+    },
+    es: {
+      doc:"NGC 4696 — Cómo se alimenta un agujero negro",
+      kicker:"JWST · NIRSpec — Cúmulo de Centaurus",
+      title:"Cómo se alimenta un agujero negro supermasivo",
+      sub:"En el corazón de <b>NGC 4696</b>, filamentos de gas multifase caen desde la atmósfera caliente del cúmulo y alimentan un disco en rotación en torno al agujero negro central.",
+      render:"Renderizado", mSchema:"Esquema", mSchemaSub:"pedagógico", mArt:"Vista artística", mArtSub:"lente gravitacional",
+      legend:"Leyenda de fases",
+      phHot:"Plasma caliente (rayos X)", phWarm:"Gas ionizado caliente", phCold:"Gas molecular frío", phJet:"Chorro de radio (AGN)", phBH:"Agujero negro supermasivo",
+      layers:"Capas", lAtmo:"Atmósfera caliente", lFil:"Filamentos en caída", lDisk:"Disco circumnuclear", lJet:"Chorros de radio", lGal:"Galaxia anfitriona (NGC 4696)", lUni:"Galaxias del cúmulo",
+      anim:"Animación", pause:"Pausa", play:"Reproducir", reset:"Restablecer vista",
+      views:"Puntos de vista", vWide:"Vista general", vWideSub:"decenas de kpc", vDisk:"Disco nuclear",
+      about:"Acerca de esta reconstrucción",
+      a1:"Esta escena ilustra cómo se alimentan los agujeros negros supermasivos: el gas caliente (10⁸ K) del cúmulo se condensa en filamentos que caen, pierden momento angular y se incorporan a un <b>disco circumnuclear</b> en rotación (~618 pc, resuelto a 10 pc por JWST/NIRSpec). El disco alimenta la acreción sobre el agujero negro, que lanza chorros de radio que excavan cavidades en el gas caliente: un ciclo autorregulado.",
+      a2:"<b>Las escalas están comprimidas.</b> Los filamentos abarcan en realidad decenas de kilopársecs; la galaxia anfitriona y el cúmulo son mucho mayores. Esta reconstrucción comprime las escalas para abarcar el fenómeno de un solo vistazo; no es una representación literal de los datos del JWST.",
+      a3:"<b>Vista artística:</b> los rayos de luz se curvan realmente por la gravedad (agujero negro de Schwarzschild): el disco aparece arqueado por encima y por debajo de la sombra, con la asimetría de brillo del efecto Doppler relativista. Es una ilustración del agujero negro central, no una simulación de los datos del artículo.",
+      veil:"Entrando en órbita…", fbT:"WebGL no disponible.", fbB:"Este navegador no parece soportar WebGL, necesario para esta visualización 3D."
+    },
+    pt: {
+      doc:"NGC 4696 — Como um buraco negro se alimenta",
+      kicker:"JWST · NIRSpec — Aglomerado de Centaurus",
+      title:"Como um buraco negro supermassivo se alimenta",
+      sub:"No coração de <b>NGC 4696</b>, filamentos de gás multifásico caem da atmosfera quente do aglomerado e alimentam um disco em rotação ao redor do buraco negro central.",
+      render:"Renderização", mSchema:"Esquema", mSchemaSub:"didático", mArt:"Vista artística", mArtSub:"lente gravitacional",
+      legend:"Legenda das fases",
+      phHot:"Plasma quente (raios X)", phWarm:"Gás ionizado quente", phCold:"Gás molecular frio", phJet:"Jato de rádio (AGN)", phBH:"Buraco negro supermassivo",
+      layers:"Camadas", lAtmo:"Atmosfera quente", lFil:"Filamentos em queda", lDisk:"Disco circunuclear", lJet:"Jatos de rádio", lGal:"Galáxia hospedeira (NGC 4696)", lUni:"Galáxias do aglomerado",
+      anim:"Animação", pause:"Pausar", play:"Reproduzir", reset:"Redefinir vista",
+      views:"Pontos de vista", vWide:"Visão geral", vWideSub:"dezenas de kpc", vDisk:"Disco nuclear",
+      about:"Sobre esta reconstrução",
+      a1:"Esta cena ilustra como os buracos negros supermassivos se alimentam: o gás quente (10⁸ K) do aglomerado condensa-se em filamentos que caem, perdem momento angular e juntam-se a um <b>disco circunuclear</b> em rotação (~618 pc, resolvido a 10 pc pelo JWST/NIRSpec). O disco alimenta a acreção no buraco negro, que lança jatos de rádio que escavam cavidades no gás quente — um ciclo autorregulado.",
+      a2:"<b>As escalas estão comprimidas.</b> Os filamentos estendem-se na verdade por dezenas de kiloparsecs; a galáxia hospedeira e o aglomerado são muito maiores. Esta reconstrução comprime as escalas para mostrar o fenômeno num só olhar; não é uma representação literal dos dados do JWST.",
+      a3:"<b>Vista artística:</b> os raios de luz são realmente curvados pela gravidade (buraco negro de Schwarzschild): o disco aparece arqueado acima e abaixo da sombra, com a assimetria de brilho do efeito Doppler relativístico. É uma ilustração do buraco negro central, não uma simulação dos dados do artigo.",
+      veil:"Entrando em órbita…", fbT:"WebGL indisponível.", fbB:"Este navegador não parece suportar WebGL, necessário para esta visualização 3D."
+    },
+    de: {
+      doc:"NGC 4696 — Wie ein Schwarzes Loch gefüttert wird",
+      kicker:"JWST · NIRSpec — Centaurus-Haufen",
+      title:"Wie ein supermassereiches Schwarzes Loch gefüttert wird",
+      sub:"Im Herzen von <b>NGC 4696</b> stürzen Filamente aus Mehrphasengas aus der heißen Atmosphäre des Haufens ein und speisen eine rotierende Scheibe um das zentrale Schwarze Loch.",
+      render:"Darstellung", mSchema:"Schema", mSchemaSub:"didaktisch", mArt:"Künstlerische Ansicht", mArtSub:"Gravitationslinse",
+      legend:"Phasen-Legende",
+      phHot:"Heißes Plasma (Röntgen)", phWarm:"Warmes ionisiertes Gas", phCold:"Kaltes molekulares Gas", phJet:"Radio-Jet (AGN)", phBH:"Supermassereiches Schwarzes Loch",
+      layers:"Ebenen", lAtmo:"Heiße Atmosphäre", lFil:"Einfallende Filamente", lDisk:"Zirkumnukleare Scheibe", lJet:"Radio-Jets", lGal:"Wirtsgalaxie (NGC 4696)", lUni:"Haufengalaxien",
+      anim:"Animation", pause:"Pause", play:"Abspielen", reset:"Ansicht zurücksetzen",
+      views:"Blickwinkel", vWide:"Übersicht", vWideSub:"Dutzende kpc", vDisk:"Kernscheibe",
+      about:"Über diese Rekonstruktion",
+      a1:"Diese Szene zeigt, wie supermassereiche Schwarze Löcher gefüttert werden: Heißes Gas (10⁸ K) des Haufens kondensiert zu Filamenten, die einfallen, Drehimpuls verlieren und sich einer rotierenden <b>zirkumnuklearen Scheibe</b> anschließen (~618 pc, mit 10 pc Auflösung durch JWST/NIRSpec). Die Scheibe speist die Akkretion auf das Schwarze Loch, das Radio-Jets ausstößt, die Kavitäten in das heiße Gas graben — ein selbstregulierender Kreislauf.",
+      a2:"<b>Die Größenverhältnisse sind komprimiert.</b> Die Filamente erstrecken sich tatsächlich über Dutzende Kiloparsec; Wirtsgalaxie und Haufen sind weit größer. Diese Rekonstruktion komprimiert die Skalen, um das Phänomen auf einen Blick zu zeigen; sie ist keine wörtliche Darstellung der JWST-Daten.",
+      a3:"<b>Künstlerische Ansicht:</b> Lichtstrahlen werden tatsächlich durch die Gravitation gekrümmt (Schwarzschild-Schwarzes-Loch): Die Scheibe erscheint über und unter dem Schatten gewölbt, mit der Helligkeitsasymmetrie des relativistischen Doppler-Effekts. Es ist eine Illustration des zentralen Schwarzen Lochs, keine Simulation der Daten des Artikels.",
+      veil:"Eintritt in den Orbit…", fbT:"WebGL nicht verfügbar.", fbB:"Dieser Browser scheint WebGL nicht zu unterstützen, das für diese 3D-Visualisierung erforderlich ist."
+    },
+    ru: {
+      doc:"NGC 4696 — Как питается чёрная дыра",
+      kicker:"JWST · NIRSpec — Скопление Центавра",
+      title:"Как питается сверхмассивная чёрная дыра",
+      sub:"В сердце <b>NGC 4696</b> волокна многофазного газа падают из горячей атмосферы скопления и питают вращающийся диск вокруг центральной чёрной дыры.",
+      render:"Режим", mSchema:"Схема", mSchemaSub:"учебная", mArt:"Художественный вид", mArtSub:"гравитационное линзирование",
+      legend:"Легенда фаз",
+      phHot:"Горячая плазма (рентген)", phWarm:"Тёплый ионизованный газ", phCold:"Холодный молекулярный газ", phJet:"Радиоджет (AGN)", phBH:"Сверхмассивная чёрная дыра",
+      layers:"Слои", lAtmo:"Горячая атмосфера", lFil:"Падающие волокна", lDisk:"Околоядерный диск", lJet:"Радиоджеты", lGal:"Родительская галактика (NGC 4696)", lUni:"Галактики скопления",
+      anim:"Анимация", pause:"Пауза", play:"Пуск", reset:"Сбросить вид",
+      views:"Ракурсы", vWide:"Общий вид", vWideSub:"десятки кпк", vDisk:"Ядерный диск",
+      about:"Об этой реконструкции",
+      a1:"Эта сцена показывает, как питаются сверхмассивные чёрные дыры: горячий газ (10⁸ K) скопления конденсируется в волокна, которые падают внутрь, теряют угловой момент и вливаются во вращающийся <b>околоядерный диск</b> (~618 пк, разрешение 10 пк, JWST/NIRSpec). Диск питает аккрецию на чёрную дыру, которая запускает радиоджеты, выдувающие полости в горячем газе, — саморегулирующийся цикл.",
+      a2:"<b>Масштабы сжаты.</b> В действительности волокна простираются на десятки килопарсек; галактика и скопление гораздо больше. Реконструкция сжимает масштабы, чтобы показать явление целиком; это не буквальное воспроизведение данных JWST.",
+      a3:"<b>Художественный вид:</b> лучи света действительно искривляются гравитацией (чёрная дыра Шварцшильда): диск выглядит изогнутым над тенью и под ней, с асимметрией яркости из-за релятивистского эффекта Доплера. Это иллюстрация центральной чёрной дыры, а не симуляция данных статьи.",
+      veil:"Выход на орбиту…", fbT:"WebGL недоступен.", fbB:"Похоже, этот браузер не поддерживает WebGL, необходимый для этой 3D-визуализации."
+    },
+    zh: {
+      doc:"NGC 4696 — 黑洞如何进食",
+      kicker:"JWST · NIRSpec — 半人马座星系团",
+      title:"超大质量黑洞如何进食",
+      sub:"在 <b>NGC 4696</b> 的核心，多相气体细丝从星系团的炽热大气中坠落，为围绕中心黑洞旋转的吸积盘提供物质。",
+      render:"渲染", mSchema:"示意图", mSchemaSub:"教学", mArt:"艺术视图", mArtSub:"引力透镜",
+      legend:"相态图例",
+      phHot:"炽热等离子体（X射线）", phWarm:"温热电离气体", phCold:"冷分子气体", phJet:"射电喷流（AGN）", phBH:"超大质量黑洞",
+      layers:"图层", lAtmo:"炽热大气", lFil:"坠落细丝", lDisk:"核周盘", lJet:"射电喷流", lGal:"宿主星系（NGC 4696）", lUni:"星系团成员星系",
+      anim:"动画", pause:"暂停", play:"播放", reset:"重置视角",
+      views:"视角", vWide:"全景", vWideSub:"数十 kpc", vDisk:"核盘",
+      about:"关于此重构",
+      a1:"这一场景展示了超大质量黑洞的进食机制：星系团中的炽热气体（10⁸ K）凝结成细丝，向内坠落并失去角动量，汇入一个旋转的<b>核周盘</b>（约 618 秒差距，JWST/NIRSpec 分辨率达 10 秒差距）。该盘为黑洞吸积供给物质，黑洞则喷出射电喷流，在热气体中开凿空腔——形成自我调节的循环。",
+      a2:"<b>比例经过压缩。</b>细丝实际延伸数十千秒差距；宿主星系和星系团则更为庞大。此重构压缩了尺度，以便一览全貌，并非 JWST 数据的逐字呈现。",
+      a3:"<b>艺术视图：</b>光线真实地被引力弯曲（史瓦西黑洞）：吸积盘在阴影上下呈拱形，并带有相对论多普勒效应造成的亮度不对称。这是对中心黑洞的艺术演绎，而非论文数据的模拟。",
+      veil:"正在进入轨道…", fbT:"WebGL 不可用。", fbB:"此浏览器似乎不支持 WebGL，而本 3D 可视化需要它。"
+    },
+    ja: {
+      doc:"NGC 4696 — ブラックホールはどう物質を得るか",
+      kicker:"JWST · NIRSpec — ケンタウルス座銀河団",
+      title:"超大質量ブラックホールはどのように物質を取り込むのか",
+      sub:"<b>NGC 4696</b> の中心部では、多相ガスのフィラメントが銀河団の高温大気から落下し、中心ブラックホールを取り巻く回転円盤に物質を供給しています。",
+      render:"表示モード", mSchema:"模式図", mSchemaSub:"解説用", mArt:"アーティスティック表示", mArtSub:"重力レンズ",
+      legend:"相の凡例",
+      phHot:"高温プラズマ（X線）", phWarm:"電離ガス", phCold:"低温分子ガス", phJet:"電波ジェット（AGN）", phBH:"超大質量ブラックホール",
+      layers:"レイヤー", lAtmo:"高温大気", lFil:"落下するフィラメント", lDisk:"核周円盤", lJet:"電波ジェット", lGal:"母銀河（NGC 4696）", lUni:"銀河団の銀河",
+      anim:"アニメーション", pause:"一時停止", play:"再生", reset:"視点をリセット",
+      views:"視点", vWide:"全体像", vWideSub:"数十 kpc", vDisk:"核円盤",
+      about:"この再現について",
+      a1:"このシーンは超大質量ブラックホールへの物質供給を示しています。銀河団の高温ガス（10⁸ K）がフィラメントに凝縮して落下し、角運動量を失って回転する<b>核周円盤</b>（約618 pc、JWST/NIRSpecで10 pcの分解能）に合流します。円盤はブラックホールへの降着を促し、ブラックホールは電波ジェットを噴出して高温ガスに空洞を穿つ——自己調節のループです。",
+      a2:"<b>縮尺は圧縮されています。</b>実際のフィラメントは数十キロパーセクに及び、母銀河や銀河団はさらに巨大です。この再現は現象を一望できるようスケールを圧縮したもので、JWSTデータの忠実な描写ではありません。",
+      a3:"<b>アーティスティック表示：</b>光は重力によって実際に曲げられます（シュヴァルツシルト・ブラックホール）。円盤は影の上下にアーチ状に見え、相対論的ドップラー効果による明るさの非対称も再現されます。これは中心ブラックホールのイラストであり、論文データのシミュレーションではありません。",
+      veil:"軌道に入っています…", fbT:"WebGL を利用できません。", fbB:"このブラウザは、この3D可視化に必要な WebGL に対応していないようです。"
+    },
+    ar: {
+      doc:"NGC 4696 — كيف يتغذى الثقب الأسود",
+      kicker:"JWST · NIRSpec — عنقود قنطورس",
+      title:"كيف يتغذى الثقب الأسود فائق الكتلة",
+      sub:"في قلب <b>NGC 4696</b>، تسقط خيوط من الغاز متعدد الأطوار من الغلاف الساخن للعنقود لتغذي قرصًا دوارًا حول الثقب الأسود المركزي.",
+      render:"العرض", mSchema:"مخطط", mSchemaSub:"تعليمي", mArt:"عرض فني", mArtSub:"عدسة جاذبية",
+      legend:"مفتاح الأطوار",
+      phHot:"بلازما ساخنة (أشعة سينية)", phWarm:"غاز متأين دافئ", phCold:"غاز جزيئي بارد", phJet:"نفاث راديوي (AGN)", phBH:"ثقب أسود فائق الكتلة",
+      layers:"الطبقات", lAtmo:"الغلاف الساخن", lFil:"خيوط ساقطة", lDisk:"القرص المحيط بالنواة", lJet:"نفاثات راديوية", lGal:"المجرة المضيفة (NGC 4696)", lUni:"مجرات العنقود",
+      anim:"الحركة", pause:"إيقاف مؤقت", play:"تشغيل", reset:"إعادة ضبط العرض",
+      views:"وجهات النظر", vWide:"نظرة عامة", vWideSub:"عشرات الكيلوفراسخ", vDisk:"القرص النووي",
+      about:"حول هذا التصور",
+      a1:"يوضّح هذا المشهد كيف تتغذى الثقوب السوداء فائقة الكتلة: يتكاثف الغاز الساخن (10⁸ كلفن) في العنقود إلى خيوط تسقط نحو الداخل وتفقد زخمها الزاوي لتنضم إلى <b>قرص محيط بالنواة</b> دوّار (~618 فرسخ فلكي، بدقة 10 فراسخ بواسطة JWST/NIRSpec). يغذي القرص التراكم على الثقب الأسود الذي يطلق نفاثات راديوية تحفر تجاويف في الغاز الساخن — حلقة ذاتية التنظيم.",
+      a2:"<b>المقاييس مضغوطة.</b> تمتد الخيوط فعليًا عبر عشرات الكيلوفراسخ؛ والمجرة المضيفة والعنقود أكبر بكثير. يضغط هذا التصور المقاييس لعرض الظاهرة بنظرة واحدة، وليس تمثيلًا حرفيًا لبيانات JWST.",
+      a3:"<b>العرض الفني:</b> تنحني أشعة الضوء فعلًا بفعل الجاذبية (ثقب شفارتزشيلد الأسود): يبدو القرص مقوّسًا فوق الظل وتحته، مع لا تماثل السطوع الناتج عن تأثير دوبلر النسبي. إنه توضيح للثقب الأسود المركزي، وليس محاكاة لبيانات الورقة البحثية.",
+      veil:"الدخول في المدار…", fbT:"WebGL غير متاح.", fbB:"يبدو أن هذا المتصفح لا يدعم WebGL اللازم لهذا العرض ثلاثي الأبعاد."
+    },
+    hi: {
+      doc:"NGC 4696 — ब्लैक होल कैसे भोजन पाता है",
+      kicker:"JWST · NIRSpec — सेंटॉरस क्लस्टर",
+      title:"एक महाविशाल ब्लैक होल कैसे भोजन पाता है",
+      sub:"<b>NGC 4696</b> के केंद्र में, बहु-चरण गैस के तंतु क्लस्टर के गर्म वायुमंडल से गिरते हैं और केंद्रीय ब्लैक होल के चारों ओर घूमती डिस्क को पोषित करते हैं।",
+      render:"प्रदर्शन", mSchema:"आरेख", mSchemaSub:"शैक्षिक", mArt:"कलात्मक दृश्य", mArtSub:"गुरुत्वीय लेंसिंग",
+      legend:"चरण संकेत",
+      phHot:"गर्म प्लाज़्मा (एक्स-रे)", phWarm:"आयनित गैस", phCold:"ठंडी आणविक गैस", phJet:"रेडियो जेट (AGN)", phBH:"महाविशाल ब्लैक होल",
+      layers:"परतें", lAtmo:"गर्म वायुमंडल", lFil:"गिरते तंतु", lDisk:"परिनाभिकीय डिस्क", lJet:"रेडियो जेट", lGal:"मेज़बान आकाशगंगा (NGC 4696)", lUni:"क्लस्टर की आकाशगंगाएँ",
+      anim:"एनीमेशन", pause:"रोकें", play:"चलाएँ", reset:"दृश्य रीसेट करें",
+      views:"दृष्टिकोण", vWide:"समग्र दृश्य", vWideSub:"दसियों kpc", vDisk:"नाभिकीय डिस्क",
+      about:"इस पुनर्निर्माण के बारे में",
+      a1:"यह दृश्य दिखाता है कि महाविशाल ब्लैक होल कैसे भोजन पाते हैं: क्लस्टर की गर्म गैस (10⁸ K) तंतुओं में संघनित होकर भीतर गिरती है, कोणीय संवेग खोती है और एक घूमती <b>परिनाभिकीय डिस्क</b> (~618 pc, JWST/NIRSpec द्वारा 10 pc विभेदन) में मिल जाती है। यह डिस्क ब्लैक होल पर अभिवृद्धि को पोषित करती है, जो रेडियो जेट छोड़ता है जो गर्म गैस में गुहाएँ बनाते हैं — एक स्व-नियंत्रित चक्र।",
+      a2:"<b>पैमाने संकुचित हैं।</b> तंतु वास्तव में दसियों किलोपारसेक तक फैले हैं; मेज़बान आकाशगंगा और क्लस्टर कहीं बड़े हैं। यह पुनर्निर्माण पूरी परिघटना को एक दृष्टि में दिखाने के लिए पैमानों को संकुचित करता है; यह JWST डेटा का शाब्दिक चित्रण नहीं है।",
+      a3:"<b>कलात्मक दृश्य:</b> प्रकाश किरणें वास्तव में गुरुत्व द्वारा मुड़ती हैं (श्वार्ज़शिल्ड ब्लैक होल): डिस्क छाया के ऊपर और नीचे धनुषाकार दिखती है, सापेक्षिक डॉप्लर प्रभाव की चमक-असममिति के साथ। यह केंद्रीय ब्लैक होल का चित्रण है, लेख के डेटा की सिमुलेशन नहीं।",
+      veil:"कक्षा में प्रवेश…", fbT:"WebGL उपलब्ध नहीं।", fbB:"यह ब्राउज़र WebGL का समर्थन नहीं करता, जो इस 3D दृश्य के लिए आवश्यक है।"
+    }
+  };
+
+  var currentLang = 'en';
+  function applyLang(lang){
+    var t = I18N[lang] || I18N.en;
+    currentLang = lang;
+    document.title = t.doc;
+    document.getElementById('scene').setAttribute('aria-label', t.doc);
+    document.getElementById('m-kicker').textContent = t.kicker;
+    document.getElementById('m-title').textContent = t.title;
+    document.getElementById('m-sub').innerHTML = t.sub;
+    document.getElementById('lbl-render').textContent = t.render;
+    document.getElementById('mode-schema').innerHTML = t.mSchema + '<br><span style="opacity:.6">' + t.mSchemaSub + '</span>';
+    document.getElementById('mode-art').innerHTML = t.mArt + '<br><span style="opacity:.6">' + t.mArtSub + '</span>';
+    document.getElementById('lbl-legend').textContent = t.legend;
+    document.getElementById('ph-hot').textContent = t.phHot;
+    document.getElementById('ph-warm').textContent = t.phWarm;
+    document.getElementById('ph-cold').textContent = t.phCold;
+    document.getElementById('ph-jet').textContent = t.phJet;
+    document.getElementById('ph-bh').textContent = t.phBH;
+    document.getElementById('lbl-layers').textContent = t.layers;
+    document.getElementById('lb-atmo').textContent = t.lAtmo;
+    document.getElementById('lb-fil').textContent = t.lFil;
+    document.getElementById('lb-disk').textContent = t.lDisk;
+    document.getElementById('lb-jet').textContent = t.lJet;
+    document.getElementById('lb-gal').textContent = t.lGal;
+    document.getElementById('lb-uni').textContent = t.lUni;
+    document.getElementById('lbl-anim').textContent = t.anim;
+    document.getElementById('btn-play').textContent = (typeof playing === 'undefined' || playing) ? t.pause : t.play;
+    document.getElementById('btn-reset').textContent = t.reset;
+    document.getElementById('lbl-views').textContent = t.views;
+    document.getElementById('view-wide').innerHTML = t.vWide + '<br><span style="opacity:.6">' + t.vWideSub + '</span>';
+    document.getElementById('view-disk').innerHTML = t.vDisk + '<br><span style="opacity:.6">~618 pc</span>';
+    document.getElementById('about-summary').textContent = t.about;
+    document.getElementById('about-1').innerHTML = t.a1;
+    document.getElementById('about-2').innerHTML = t.a2;
+    document.getElementById('about-3').innerHTML = t.a3;
+    document.getElementById('veil').textContent = t.veil;
+    document.getElementById('fb-title').textContent = t.fbT;
+    document.getElementById('fb-body').textContent = t.fbB;
+    var dir = (lang === 'ar') ? 'rtl' : 'ltr';
+    ['masthead','console','fallback'].forEach(function(id){
+      document.getElementById(id).setAttribute('dir', dir);
+    });
+    try{ localStorage.setItem('bh-lang', lang); }catch(e){}
+  }
+  var initialLang = 'en';
+  try{ initialLang = localStorage.getItem('bh-lang') || ''; }catch(e){}
+  if(!I18N[initialLang]){
+    var nav = (navigator.language || 'en').slice(0,2).toLowerCase();
+    initialLang = I18N[nav] ? nav : 'en';
+  }
+  document.getElementById('lang-select').value = initialLang;
+  applyLang(initialLang);
+  document.getElementById('lang-select').addEventListener('change', function(e){ applyLang(e.target.value); });
+
+  // ---------------------------------------------------------------
+  // WebGL setup
+  // ---------------------------------------------------------------
   var canvas = document.getElementById('scene');
   var gl = canvas.getContext('webgl', {antialias:true, alpha:false, powerPreference:'high-performance'});
   if(!gl){
@@ -250,9 +514,6 @@
 
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------------------------------------------------------------
-  // Shaders
-  // ---------------------------------------------------------------
   var VS = [
     "attribute vec3 aPosition;",
     "attribute vec3 aColor;",
@@ -261,6 +522,7 @@
     "uniform mat4 uView;",
     "uniform float uPixelRatio;",
     "uniform float uMaxPointSize;",
+    "uniform float uShadowR;",
     "varying vec3 vColor;",
     "varying float vFade;",
     "void main(){",
@@ -271,6 +533,17 @@
     "  gl_PointSize = clamp(sizePx, 1.0, uMaxPointSize);",
     "  vColor = aColor;",
     "  vFade = clamp(sizePx / 2.2, 0.0, 1.0);",
+    "  if(uShadowR > 0.0){",
+    "    vec3 bhV = (uView * vec4(0.0, 0.0, 0.0, 1.0)).xyz;",
+    "    float dBH = length(bhV);",
+    "    float dP = length(viewPos.xyz);",
+    "    if(dP > dBH){",
+    "      vec3 rdir = viewPos.xyz / max(dP, 0.001);",
+    "      float along = dot(rdir, bhV);",
+    "      float b = length(bhV - rdir*along);",
+    "      vFade *= smoothstep(uShadowR*0.8, uShadowR*1.15, b);",
+    "    }",
+    "  }",
     "}"
   ].join("\n");
 
@@ -309,6 +582,7 @@
   var uView = gl.getUniformLocation(prog, 'uView');
   var uPixelRatio = gl.getUniformLocation(prog, 'uPixelRatio');
   var uMaxPointSize = gl.getUniformLocation(prog, 'uMaxPointSize');
+  var uShadowR = gl.getUniformLocation(prog, 'uShadowR');
 
   var pointSizeRange = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) || [1,64];
   var maxPointSize = Math.min(pointSizeRange[1], 34);
@@ -316,6 +590,115 @@
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
   gl.disable(gl.DEPTH_TEST);
+
+  // ---------------------------------------------------------------
+  // Artistic mode: relativistic ray-traced black hole (Schwarzschild,
+  // units where photon-capture radius rs = 1)
+  // ---------------------------------------------------------------
+  var CINE_VS = "attribute vec2 aQuad; void main(){ gl_Position = vec4(aQuad, 0.0, 1.0); }";
+  var CINE_FS = [
+    "#ifdef GL_FRAGMENT_PRECISION_HIGH",
+    "precision highp float;",
+    "#else",
+    "precision mediump float;",
+    "#endif",
+    "uniform vec2 uRes;",
+    "uniform float uTime;",
+    "uniform vec3 uCamPos;",
+    "uniform vec3 uCamFwd;",
+    "uniform vec3 uCamRight;",
+    "uniform vec3 uCamUp;",
+    "",
+    "float hash21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }",
+    "",
+    "vec3 stars(vec3 rd){",
+    "  vec2 sph = vec2(atan(rd.z, rd.x), asin(clamp(rd.y, -1.0, 1.0)));",
+    "  vec2 grid = sph * vec2(60.0, 34.0);",
+    "  vec2 id = floor(grid);",
+    "  vec2 gv = fract(grid) - 0.5;",
+    "  float h = hash21(id);",
+    "  vec3 col = vec3(0.0);",
+    "  if(h > 0.90){",
+    "    vec2 offs = vec2(hash21(id+13.1), hash21(id+7.7)) - 0.5;",
+    "    float d = length(gv - offs*0.8);",
+    "    float b = (h-0.90)/0.10;",
+    "    float tint = hash21(id+3.3);",
+    "    vec3 sc = mix(vec3(0.85,0.9,1.0), vec3(1.0,0.9,0.75), tint);",
+    "    col += sc * b * smoothstep(0.09, 0.0, d);",
+    "  }",
+    "  return col;",
+    "}",
+    "",
+    "void main(){",
+    "  vec2 uv = (gl_FragCoord.xy*2.0 - uRes) / uRes.y;",
+    "  vec3 rd = normalize(uCamFwd*2.1 + uCamRight*uv.x + uCamUp*uv.y);",
+    "  vec3 p = uCamPos;",
+    "  vec3 hv = cross(p, rd);",
+    "  float h2 = dot(hv, hv);",
+    "  vec3 col = vec3(0.0);",
+    "  float trans = 1.0;",
+    "  float minR2 = 1e9;",
+    "  bool captured = false;",
+    "  for(int i=0;i<210;i++){",
+    "    float r2 = dot(p, p);",
+    "    minR2 = min(minR2, r2);",
+    "    if(r2 < 1.0){ captured = true; break; }",
+    "    if(r2 > 4000.0) break;",
+    "    float r = sqrt(r2);",
+    "    float dt = clamp(r*0.11, 0.045, 0.85);",
+    "    rd += (-1.5 * h2 / (r2*r2*r)) * p * dt;",
+    "    vec3 prevP = p;",
+    "    float prevY = p.y;",
+    "    p += rd * dt;",
+    "    if(prevY * p.y < 0.0){",
+    "      float f = prevY / (prevY - p.y);",
+    "      vec3 cp = mix(prevP, p, f);",
+    "      float cr = length(cp.xz);",
+    "      if(cr > 2.6 && cr < 13.0){",
+    "        float ang = atan(cp.z, cp.x);",
+    "        float rings = 0.62 + 0.38*sin(cr*3.1 + 1.4*sin(cr*7.3 + 0.8));",
+    "        rings *= 0.80 + 0.20*sin(cr*11.7 + 2.1);",
+    "        float wisps = 0.82 + 0.18*sin(ang*3.0 - uTime*0.35 + cr*1.2);",
+    "        wisps *= 0.88 + 0.12*sin(ang*7.0 + uTime*0.22 - cr*2.0);",
+    "        float radial = pow(2.6/cr, 1.7);",
+    "        float edge = smoothstep(2.6, 3.2, cr) * smoothstep(13.0, 8.0, cr);",
+    "        vec3 vdir = normalize(vec3(-cp.z, 0.0, cp.x));",
+    "        float dop = 1.0 + 1.35*dot(vdir, -normalize(rd));",
+    "        dop = clamp(dop, 0.28, 2.4);",
+    "        float b = radial * rings * wisps * edge * dop * dop;",
+    "        vec3 dcol = mix(vec3(1.0,0.50,0.16), vec3(1.0,0.82,0.55), clamp(radial*1.1, 0.0, 1.0));",
+    "        dcol = mix(dcol, vec3(1.0,0.96,0.88), clamp((b-1.1)*0.5, 0.0, 0.55));",
+    "        col += dcol * b * 1.7 * trans;",
+    "        trans *= 0.30;",
+    "      }",
+    "    }",
+    "  }",
+    "  if(!captured){",
+    "    col += stars(normalize(rd)) * trans;",
+    "    float mr = sqrt(minR2);",
+    "    col += vec3(1.0,0.83,0.62) * exp(-abs(mr-1.5)*3.0) * 0.30;",
+    "  }",
+    "  col = 1.0 - exp(-col*1.15);",
+    "  col = pow(col, vec3(0.4545));",
+    "  gl_FragColor = vec4(col, 1.0);",
+    "}"
+  ].join("\n");
+
+  var cineProg = gl.createProgram();
+  gl.attachShader(cineProg, compile(gl.VERTEX_SHADER, CINE_VS));
+  gl.attachShader(cineProg, compile(gl.FRAGMENT_SHADER, CINE_FS));
+  gl.linkProgram(cineProg);
+  var cineLocQuad = gl.getAttribLocation(cineProg, 'aQuad');
+  var cineURes = gl.getUniformLocation(cineProg, 'uRes');
+  var cineUTime = gl.getUniformLocation(cineProg, 'uTime');
+  var cineUCamPos = gl.getUniformLocation(cineProg, 'uCamPos');
+  var cineUCamFwd = gl.getUniformLocation(cineProg, 'uCamFwd');
+  var cineUCamRight = gl.getUniformLocation(cineProg, 'uCamRight');
+  var cineUCamUp = gl.getUniformLocation(cineProg, 'uCamUp');
+  var quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  var CINE_SCALE = 3.0; // world units -> Schwarzschild units
 
   // ---------------------------------------------------------------
   // Math helpers
@@ -346,10 +729,6 @@
     ]);
   }
   function lerp(a,b,t){ return a+(b-a)*t; }
-  function lerpAngle(a,b,t){
-    var d = ((b-a+Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI;
-    return a + d*t;
-  }
   function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function mix3(c0,c1,t){ return [lerp(c0[0],c1[0],t), lerp(c0[1],c1[1],t), lerp(c0[2],c1[2],t)]; }
@@ -358,11 +737,59 @@
     return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
   }
 
+  // Quaternions [x,y,z,w] — free orbit camera, no pole lock
+  function quatMul(a,b){
+    return [
+      a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+      a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+      a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+      a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
+    ];
+  }
+  function quatAxisAngle(axis, ang){
+    var s = Math.sin(ang/2);
+    return [axis[0]*s, axis[1]*s, axis[2]*s, Math.cos(ang/2)];
+  }
+  function quatNormalize(q){
+    var l = Math.hypot(q[0],q[1],q[2],q[3]) || 1;
+    return [q[0]/l, q[1]/l, q[2]/l, q[3]/l];
+  }
+  function quatRotate(q, v){
+    var qx=q[0], qy=q[1], qz=q[2], qw=q[3];
+    var tx = 2*(qy*v[2] - qz*v[1]);
+    var ty = 2*(qz*v[0] - qx*v[2]);
+    var tz = 2*(qx*v[1] - qy*v[0]);
+    return [
+      v[0] + qw*tx + qy*tz - qz*ty,
+      v[1] + qw*ty + qz*tx - qx*tz,
+      v[2] + qw*tz + qx*ty - qy*tx
+    ];
+  }
+  function quatSlerp(a, b, t){
+    var d = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3];
+    var bb = b;
+    if(d < 0){ d = -d; bb = [-b[0],-b[1],-b[2],-b[3]]; }
+    if(d > 0.9995){
+      return quatNormalize([
+        lerp(a[0],bb[0],t), lerp(a[1],bb[1],t), lerp(a[2],bb[2],t), lerp(a[3],bb[3],t)
+      ]);
+    }
+    var th = Math.acos(d), sth = Math.sin(th);
+    var wa = Math.sin((1-t)*th)/sth, wb = Math.sin(t*th)/sth;
+    return [
+      a[0]*wa + bb[0]*wb, a[1]*wa + bb[1]*wb, a[2]*wa + bb[2]*wb, a[3]*wa + bb[3]*wb
+    ];
+  }
+  function quatFromSpherical(theta, phi){
+    var qy = quatAxisAngle([0,1,0], Math.PI/2 - theta);
+    var qx = quatAxisAngle([1,0,0], phi - Math.PI/2);
+    return quatMul(qy, qx);
+  }
+
   var COL_HOT = hexToRgb('#bfe3ff');
   var COL_WARM = hexToRgb('#ff9d52');
   var COL_COLD = hexToRgb('#ef4d8f');
   var COL_JET = hexToRgb('#b48cff');
-  var COL_BH = hexToRgb('#ffffff');
 
   // ---------------------------------------------------------------
   // Particle group helper
@@ -376,8 +803,7 @@
       dynamicColor: !!dynamicColor,
       posBuf: gl.createBuffer(),
       colBuf: gl.createBuffer(),
-      sizeBuf: gl.createBuffer(),
-      colUploaded:false
+      sizeBuf: gl.createBuffer()
     };
   }
   function uploadPos(g){
@@ -413,7 +839,7 @@
   }
 
   // ---------------------------------------------------------------
-  // Scene scale constants (stylised, not linear to real pc/kpc — see info panel)
+  // Scene scale constants (stylised — see info panel)
   // ---------------------------------------------------------------
   var CAVITY_Y = 4.2, CAVITY_RX = 2.0, CAVITY_RY = 2.7, CAVITY_RZ = 2.0;
   var DISK_R_MIN = 0.34, DISK_R_MAX = 1.05;
@@ -426,17 +852,76 @@
     return e1 < 1.0 || e2 < 1.0;
   }
 
-  // ---------------- Stars (static distant backdrop) ----------------
-  var STAR_N = 550;
+  // ---------------- Stars (distant backdrop) ----------------
+  var STAR_N = 600;
   var stars = makeGroup(STAR_N, false);
   for(var i=0;i<STAR_N;i++){
-    var d = randUnitDir(), r = rand(30,60);
+    var d = randUnitDir(), r = rand(58,95);
     stars.pos[i*3]=d[0]*r; stars.pos[i*3+1]=d[1]*r; stars.pos[i*3+2]=d[2]*r;
-    var b = rand(0.35,0.9);
+    var b = rand(0.5,1.0);
     stars.col[i*3]=b; stars.col[i*3+1]=b; stars.col[i*3+2]=b*1.05;
-    stars.size[i]=rand(0.6,1.4);
+    stars.size[i]=rand(6.0,12.0);
   }
   uploadPos(stars); uploadCol(stars); uploadSize(stars);
+
+  // ---------------- Host galaxy: giant elliptical stellar halo ----------------
+  var GAL_N = 5200;
+  var galaxy = makeGroup(GAL_N, false);
+  for(var i=0;i<GAL_N;i++){
+    var d = randUnitDir();
+    var rr = 1.7 + 12.6*Math.pow(Math.random(), 2.1);
+    var x = d[0]*rr, y = d[1]*rr*0.78, z = d[2]*rr;
+    galaxy.pos[i*3]=x; galaxy.pos[i*3+1]=y; galaxy.pos[i*3+2]=z;
+    var conc = Math.pow(1 - (rr-1.7)/12.6, 1.8);
+    var b = (0.34 + 0.95*conc) * rand(0.55, 1.0);
+    galaxy.col[i*3]   = 1.00*b;
+    galaxy.col[i*3+1] = 0.90*b;
+    galaxy.col[i*3+2] = 0.72*b;
+    galaxy.size[i] = rand(1.6, 3.0);
+  }
+  uploadPos(galaxy); uploadCol(galaxy); uploadSize(galaxy);
+
+  // ---------------- Centaurus cluster: distant galaxies ----------------
+  var UNI_GALAXIES = 36, UNI_PER = 46, UNI_N = UNI_GALAXIES*UNI_PER;
+  var universe = makeGroup(UNI_N, false);
+  (function(){
+    var idx = 0;
+    for(var g=0; g<UNI_GALAXIES; g++){
+      var dir = randUnitDir();
+      var R = rand(26, 54);
+      var cx = dir[0]*R, cy = dir[1]*R, cz = dir[2]*R;
+      var s = rand(1.0, 2.8);
+      var isDisk = Math.random() > 0.55;
+      var bb = rand(0.55, 0.95);
+      var baseCol = isDisk ? [0.72,0.80,1.0] : [1.0,0.88,0.70];
+      // random orientation basis for disk types
+      var n = randUnitDir();
+      var u = [-n[2], 0, n[0]];
+      var ul = Math.hypot(u[0],u[1],u[2]) || 1; u=[u[0]/ul,u[1]/ul,u[2]/ul];
+      var v = [n[1]*u[2]-n[2]*u[1], n[2]*u[0]-n[0]*u[2], n[0]*u[1]-n[1]*u[0]];
+      for(var k=0;k<UNI_PER;k++){
+        var px, py, pz;
+        if(isDisk){
+          var a = rand(0, Math.PI*2), rad = s*Math.sqrt(Math.random());
+          var off = rand(-0.07,0.07)*s;
+          px = cx + u[0]*Math.cos(a)*rad + v[0]*Math.sin(a)*rad + n[0]*off;
+          py = cy + u[1]*Math.cos(a)*rad + v[1]*Math.sin(a)*rad + n[1]*off;
+          pz = cz + u[2]*Math.cos(a)*rad + v[2]*Math.sin(a)*rad + n[2]*off;
+        } else {
+          var dd = randUnitDir(), rr2 = s*Math.pow(Math.random(),1.6);
+          px = cx + dd[0]*rr2; py = cy + dd[1]*rr2*0.8; pz = cz + dd[2]*rr2;
+        }
+        universe.pos[idx*3]=px; universe.pos[idx*3+1]=py; universe.pos[idx*3+2]=pz;
+        var cb = bb * rand(0.5, 1.0) * (k===0 ? 1.6 : 1.0);
+        universe.col[idx*3]   = baseCol[0]*cb;
+        universe.col[idx*3+1] = baseCol[1]*cb;
+        universe.col[idx*3+2] = baseCol[2]*cb;
+        universe.size[idx] = k===0 ? rand(6.0,9.0) : rand(3.0,5.5);
+        idx++;
+      }
+    }
+  })();
+  uploadPos(universe); uploadCol(universe); uploadSize(universe);
 
   // ---------------- Hot atmosphere (10^8 K plasma) ----------------
   var ATMO_N = 2100;
@@ -521,7 +1006,7 @@
   }
   uploadCol(disk); uploadSize(disk);
 
-  // ---------------- Accretion ring (near black hole) ----------------
+  // ---------------- Accretion ring ----------------
   var ACC_N = 160;
   var accretion = makeGroup(ACC_N, false);
   var accR = new Float32Array(ACC_N);
@@ -575,16 +1060,26 @@
   uploadCol(bh); uploadSize(bh);
 
   // ---------------------------------------------------------------
-  // Camera
+  // Camera — quaternion free orbit (all axes, no pole lock)
   // ---------------------------------------------------------------
-  var cam = { theta: 0.9, phi: 1.15, radius: 11.5, vTheta:0, vPhi:0 };
-  var WIDE = { theta:0.9, phi:1.15, radius:11.5 };
-  var CLOSE = { theta:2.2, phi:0.42, radius:3.4 };
+  var WIDE = { q: quatFromSpherical(0.9, 1.15), radius: 16.0 };
+  var CLOSE = { q: quatFromSpherical(2.2, 0.42), radius: 3.4 };
+  var CINE_VIEW = { q: quatFromSpherical(2.2, 1.42), radius: 6.2 };
+  var cam = { q: WIDE.q.slice(), radius: WIDE.radius, vYaw: 0, vPitch: 0 };
+  var R_MIN = 1.6, R_MAX = 44;
   var transition = null;
   var isDragging = false, lastX=0, lastY=0;
   var pointers = new Map();
 
   function setDragging(v){ isDragging = v; canvas.classList.toggle('dragging', v); }
+
+  function orbitBy(yaw, pitch){
+    var upAxis = quatRotate(cam.q, [0,1,0]);
+    var rightAxis = quatRotate(cam.q, [1,0,0]);
+    var qy = quatAxisAngle(upAxis, yaw);
+    var qp = quatAxisAngle(rightAxis, pitch);
+    cam.q = quatNormalize(quatMul(quatMul(qy, qp), cam.q));
+  }
 
   canvas.addEventListener('pointerdown', function(e){
     canvas.setPointerCapture(e.pointerId);
@@ -599,7 +1094,7 @@
       var d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
       if(canvas._pinchD){
         var ratio = canvas._pinchD / Math.max(d,1);
-        cam.radius = clamp(cam.radius*ratio, 1.6, 18);
+        cam.radius = clamp(cam.radius*ratio, R_MIN, R_MAX);
       }
       canvas._pinchD = d;
       return;
@@ -607,9 +1102,8 @@
     if(!isDragging) return;
     var dx = e.clientX-lastX, dy = e.clientY-lastY;
     lastX=e.clientX; lastY=e.clientY;
-    cam.theta -= dx*0.0048; cam.phi -= dy*0.0048;
-    cam.phi = clamp(cam.phi, 0.16, Math.PI-0.16);
-    cam.vTheta = -dx*0.0048; cam.vPhi = -dy*0.0048;
+    orbitBy(dx*0.0048, -dy*0.0048);
+    cam.vYaw = dx*0.0048; cam.vPitch = -dy*0.0048;
     transition = null;
   });
   function endPointer(e){
@@ -621,18 +1115,18 @@
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', function(e){
     e.preventDefault();
-    cam.radius = clamp(cam.radius*Math.pow(1.0016, e.deltaY), 1.6, 18);
+    cam.radius = clamp(cam.radius*Math.pow(1.0016, e.deltaY), R_MIN, R_MAX);
     transition = null;
   }, {passive:false});
 
   function flyTo(target, activeBtn){
     var dur = reduceMotion ? 1 : 950;
     transition = {
-      startTheta:cam.theta, startPhi:cam.phi, startRadius:cam.radius,
-      endTheta:target.theta, endPhi:target.phi, endRadius:target.radius,
+      q0: cam.q.slice(), q1: target.q,
+      r0: cam.radius, r1: target.radius,
       t0: performance.now(), dur: dur
     };
-    document.querySelectorAll('.view-btn').forEach(function(b){ b.classList.remove('active'); });
+    ['view-wide','view-disk'].forEach(function(id){ document.getElementById(id).classList.remove('active'); });
     if(activeBtn) activeBtn.classList.add('active');
   }
   function setAtmoVisible(v){
@@ -647,19 +1141,37 @@
   });
 
   // ---------------------------------------------------------------
-  // UI: layers, play/pause, speed
+  // UI: render mode, layers, play/pause, speed
   // ---------------------------------------------------------------
-  var layerVisible = { atmo:true, fil:true, disk:true, jet:true };
+  var renderMode = 'schema';
+  function setMode(mode){
+    if(mode === renderMode) return;
+    renderMode = mode;
+    document.getElementById('mode-schema').classList.toggle('active', mode==='schema');
+    document.getElementById('mode-art').classList.toggle('active', mode==='art');
+    document.getElementById('row-disk').classList.toggle('dimmed', mode==='art');
+    if(mode === 'art'){
+      flyTo({ q: CINE_VIEW.q, radius: CINE_VIEW.radius }, null);
+    }
+    resize();
+  }
+  document.getElementById('mode-schema').addEventListener('click', function(){ setMode('schema'); });
+  document.getElementById('mode-art').addEventListener('click', function(){ setMode('art'); });
+
+  var layerVisible = { atmo:true, fil:true, disk:true, jet:true, gal:true, uni:true };
   document.getElementById('tg-atmo').addEventListener('change', function(e){ layerVisible.atmo = e.target.checked; });
   document.getElementById('tg-fil').addEventListener('change', function(e){ layerVisible.fil = e.target.checked; });
   document.getElementById('tg-disk').addEventListener('change', function(e){ layerVisible.disk = e.target.checked; });
   document.getElementById('tg-jet').addEventListener('change', function(e){ layerVisible.jet = e.target.checked; });
+  document.getElementById('tg-gal').addEventListener('change', function(e){ layerVisible.gal = e.target.checked; });
+  document.getElementById('tg-uni').addEventListener('change', function(e){ layerVisible.uni = e.target.checked; });
 
   var playing = true;
   var btnPlay = document.getElementById('btn-play');
   btnPlay.addEventListener('click', function(){
     playing = !playing;
-    btnPlay.textContent = playing ? 'Pause' : 'Lecture';
+    var t = I18N[currentLang] || I18N.en;
+    btnPlay.textContent = playing ? t.pause : t.play;
   });
   var speed = 1.0;
   var speedInput = document.getElementById('speed');
@@ -673,13 +1185,15 @@
   // ---------------------------------------------------------------
   // Resize
   // ---------------------------------------------------------------
-  var proj = perspective(50*Math.PI/180, 1, 0.1, 80);
+  var proj = perspective(50*Math.PI/180, 1, 0.1, 160);
   function resize(){
     var dpr = Math.min(window.devicePixelRatio||1, 2);
+    if(renderMode === 'art') dpr = 1;
     var w = canvas.clientWidth, h = canvas.clientHeight;
     canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
     gl.viewport(0,0,canvas.width, canvas.height);
-    proj = perspective(50*Math.PI/180, w/h, 0.1, 80);
+    proj = perspective(50*Math.PI/180, w/h, 0.1, 160);
+    gl.useProgram(prog);
     gl.uniform1f(uPixelRatio, dpr);
   }
   window.addEventListener('resize', resize);
@@ -695,14 +1209,14 @@
     if(transition){
       var t = clamp((now-transition.t0)/transition.dur, 0, 1);
       var e = easeInOutCubic(t);
-      cam.theta = lerpAngle(transition.startTheta, transition.endTheta, e);
-      cam.phi = lerp(transition.startPhi, transition.endPhi, e);
-      cam.radius = lerp(transition.startRadius, transition.endRadius, e);
+      cam.q = quatSlerp(transition.q0, transition.q1, e);
+      cam.radius = lerp(transition.r0, transition.r1, e);
       if(t>=1) transition = null;
     } else if(!isDragging){
-      cam.theta += cam.vTheta; cam.phi += cam.vPhi;
-      cam.phi = clamp(cam.phi, 0.16, Math.PI-0.16);
-      cam.vTheta *= 0.9; cam.vPhi *= 0.9;
+      if(Math.abs(cam.vYaw) > 1e-5 || Math.abs(cam.vPitch) > 1e-5){
+        orbitBy(cam.vYaw, cam.vPitch);
+        cam.vYaw *= 0.9; cam.vPitch *= 0.9;
+      }
     }
   }
 
@@ -713,23 +1227,19 @@
 
     updateCamera(now);
 
-    var eye = [
-      cam.radius*Math.sin(cam.phi)*Math.cos(cam.theta),
-      cam.radius*Math.cos(cam.phi),
-      cam.radius*Math.sin(cam.phi)*Math.sin(cam.theta)
-    ];
-    var view = lookAt(eye, [0,0,0], [0,1,0]);
+    var eye = quatRotate(cam.q, [0, 0, cam.radius]);
+    var upv = quatRotate(cam.q, [0, 1, 0]);
+    var view = lookAt(eye, [0,0,0], upv);
 
-    // --- update atmosphere jitter ---
+    // --- particle updates (shared by both modes) ---
     for(var i=0;i<ATMO_N;i++){
       var wob = Math.sin(simTime*0.4 + atmoJitter[i])*0.06;
-      atmo.pos[i*3] = atmoBase[i*3]*(1+wob*0.02) ;
+      atmo.pos[i*3] = atmoBase[i*3]*(1+wob*0.02);
       atmo.pos[i*3+1] = atmoBase[i*3+1] + wob*0.3;
       atmo.pos[i*3+2] = atmoBase[i*3+2]*(1+wob*0.02);
     }
     uploadPos(atmo);
 
-    // --- update filaments ---
     for(var i=0;i<FIL_N;i++){
       var t = (filPhase[i] + simTime*0.055*filSpeed[i]) % 1;
       var strand = strands[filStrand[i]];
@@ -744,7 +1254,70 @@
     }
     uploadPos(filaments); uploadCol(filaments); uploadSize(filaments);
 
-    // --- update disk (differential Keplerian-like rotation) ---
+    for(var i=0;i<JET_N;i++){
+      var t = (jetPhase[i] + simTime*0.35*jetSpeed[i]) % 1;
+      var travel = 0.15 + t*6.3;
+      var spread = jetSpread[i]*t*t*6;
+      jets.pos[i*3] = Math.cos(jetAz[i])*spread;
+      jets.pos[i*3+1] = jetPole[i]*travel;
+      jets.pos[i*3+2] = Math.sin(jetAz[i])*spread;
+      var c = mix3(COL_JET, [1,1,1], Math.max(0,0.5-t*0.7));
+      jets.col[i*3]=c[0]; jets.col[i*3+1]=c[1]; jets.col[i*3+2]=c[2];
+      var fade = Math.min(1,t*10) * (1-t*0.75);
+      jets.size[i] = (1.0 + (1-t)*1.4) * fade;
+    }
+    uploadPos(jets); uploadCol(jets); uploadSize(jets);
+
+    if(renderMode === 'art'){
+      // ---- ray-traced black hole background ----
+      var fl = Math.hypot(eye[0], eye[1], eye[2]);
+      var fwd = [-eye[0]/fl, -eye[1]/fl, -eye[2]/fl];
+      var right = [
+        fwd[1]*upv[2] - fwd[2]*upv[1],
+        fwd[2]*upv[0] - fwd[0]*upv[2],
+        fwd[0]*upv[1] - fwd[1]*upv[0]
+      ];
+      var rl = Math.hypot(right[0], right[1], right[2]) || 1;
+      right = [right[0]/rl, right[1]/rl, right[2]/rl];
+      var upc = [
+        right[1]*fwd[2] - right[2]*fwd[1],
+        right[2]*fwd[0] - right[0]*fwd[2],
+        right[0]*fwd[1] - right[1]*fwd[0]
+      ];
+      gl.disableVertexAttribArray(locPos);
+      gl.disableVertexAttribArray(locCol);
+      gl.disableVertexAttribArray(locSize);
+      gl.useProgram(cineProg);
+      gl.uniform2f(cineURes, canvas.width, canvas.height);
+      gl.uniform1f(cineUTime, simTime);
+      gl.uniform3f(cineUCamPos, eye[0]*CINE_SCALE, eye[1]*CINE_SCALE, eye[2]*CINE_SCALE);
+      gl.uniform3f(cineUCamFwd, fwd[0], fwd[1], fwd[2]);
+      gl.uniform3f(cineUCamRight, right[0], right[1], right[2]);
+      gl.uniform3f(cineUCamUp, upc[0], upc[1], upc[2]);
+      gl.disable(gl.BLEND);
+      gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+      gl.enableVertexAttribArray(cineLocQuad);
+      gl.vertexAttribPointer(cineLocQuad, 2, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      gl.disableVertexAttribArray(cineLocQuad);
+      gl.enable(gl.BLEND);
+
+      // ---- context layers on top: galaxy, cluster, gas, filaments, jets ----
+      gl.useProgram(prog);
+      gl.uniformMatrix4fv(uProj, false, proj);
+      gl.uniformMatrix4fv(uView, false, view);
+      gl.uniform1f(uShadowR, 2.6/CINE_SCALE);
+      if(layerVisible.uni) drawGroup(universe);
+      if(layerVisible.gal) drawGroup(galaxy);
+      if(layerVisible.atmo) drawGroup(atmo);
+      if(layerVisible.fil) drawGroup(filaments);
+      if(layerVisible.jet) drawGroup(jets);
+
+      requestAnimationFrame(frame);
+      return;
+    }
+
+    // ---- schema mode ----
     for(var i=0;i<DISK_N;i++){
       var r = diskR[i];
       var omega = 0.62 / Math.sqrt(r);
@@ -765,28 +1338,16 @@
     }
     uploadPos(accretion);
 
-    // --- update jets ---
-    for(var i=0;i<JET_N;i++){
-      var t = (jetPhase[i] + simTime*0.35*jetSpeed[i]) % 1;
-      var travel = 0.15 + t*6.3;
-      var spread = jetSpread[i]*t*t*6;
-      jets.pos[i*3] = Math.cos(jetAz[i])*spread;
-      jets.pos[i*3+1] = jetPole[i]*travel;
-      jets.pos[i*3+2] = Math.sin(jetAz[i])*spread;
-      var c = mix3(COL_JET, [1,1,1], Math.max(0,0.5-t*0.7));
-      jets.col[i*3]=c[0]; jets.col[i*3+1]=c[1]; jets.col[i*3+2]=c[2];
-      var fade = Math.min(1,t*10) * (1-t*0.75);
-      jets.size[i] = (1.0 + (1-t)*1.4) * fade;
-    }
-    uploadPos(jets); uploadCol(jets); uploadSize(jets);
-
-    // --- render ---
+    gl.useProgram(prog);
     gl.clearColor(0.02,0.028,0.052,1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniformMatrix4fv(uProj, false, proj);
     gl.uniformMatrix4fv(uView, false, view);
+    gl.uniform1f(uShadowR, 0.0);
 
     drawGroup(stars);
+    if(layerVisible.uni) drawGroup(universe);
+    if(layerVisible.gal) drawGroup(galaxy);
     if(layerVisible.atmo) drawGroup(atmo);
     if(layerVisible.fil) drawGroup(filaments);
     if(layerVisible.disk){
