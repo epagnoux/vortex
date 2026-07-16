@@ -25,8 +25,11 @@
     background:var(--void); color:var(--text-1);
     font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
+    -webkit-overflow-scrolling:none;
+    overscroll-behavior:none;
+    touch-action:none;
   }
-  #scene{position:fixed; inset:0; width:100%; height:100%; touch-action:none; cursor:grab;}
+  #scene{position:fixed; inset:0; width:100%; height:100%; touch-action:none; cursor:grab; -webkit-touch-callout:none;}
   #scene.dragging{cursor:grabbing;}
 
   #fallback{
@@ -88,7 +91,26 @@
     -webkit-backdrop-filter:blur(14px) saturate(140%);
     padding:.9rem .95rem 1rem;
     box-shadow:0 20px 50px -20px rgba(0,0,0,.6);
+    transition:transform .3s ease, opacity .3s ease;
   }
+  .console.collapsed{
+    transform:translateY(calc(100% + 1rem));
+    opacity:0;
+    pointer-events:none;
+  }
+  .console-toggle{
+    position:fixed; bottom:1rem; right:1rem; z-index:12;
+    display:none; width:36px; height:36px; border-radius:50%;
+    background:var(--panel-bg); border:1px solid var(--panel-border);
+    backdrop-filter:blur(10px) saturate(140%);
+    -webkit-backdrop-filter:blur(10px) saturate(140%);
+    color:var(--accent); cursor:pointer; align-items:center; justify-content:center;
+    font-size:1.2rem; line-height:1;
+    box-shadow:0 4px 16px -8px rgba(0,0,0,.5);
+    transition:opacity .3s ease, transform .3s ease;
+  }
+  .console-toggle.show{display:flex;}
+  .console-toggle.hidden{opacity:0; transform:scale(0.8); pointer-events:none;}
   .console::-webkit-scrollbar{width:6px;}
   .console::-webkit-scrollbar-thumb{background:var(--hairline); border-radius:3px;}
 
@@ -189,18 +211,33 @@
   .ai-badge::before{content:"✦ "; color:var(--accent);}
 
   @media (max-width: 640px){
-    .console{width:calc(100vw - 1.6rem); left:.8rem; right:.8rem; bottom:.8rem;}
-    .masthead{max-width:calc(100vw - 1.6rem);}
-    /* the console spans the bottom on mobile — anchor the source
-       back under the intro text instead of bottom-left */
-    .paper-link{position:static; margin-top:.6rem; max-width:100%;}
+    .console{width:calc(100vw - 1.6rem); left:.8rem; right:.8rem; bottom:.8rem; max-height:48vh; font-size:14px;}
+    .masthead{max-width:calc(100vw - 1.6rem); padding:.8rem 1rem .7rem;}
+    .masthead-title{font-size:1.1rem;}
+    .masthead-sub{font-size:.82rem;}
+    .masthead-kicker{font-size:.68rem;}
+    .paper-link{position:static; margin-top:.6rem; max-width:100%; font-size:.68rem;}
     .ai-badge{
       top:.6rem; right:.6rem; max-width:46vw;
       white-space:normal; text-align:right;
-      font-size:.56rem; padding:.3rem .5rem; line-height:1.5;
+      font-size:.6rem; padding:.3rem .5rem; line-height:1.5;
     }
-    .masthead{max-width:52vw;}
-    .console{max-height:46vh;}
+    .console-toggle.show{display:flex; bottom:.8rem; right:.8rem;}
+    .section-label{font-size:.68rem;}
+    .legend-row{font-size:.85rem;}
+    .toggle-row{font-size:.85rem;}
+    button{font-size:.82rem; padding:.48rem .65rem;}
+    .lang-row select{font-size:.78rem;}
+    details.info p{font-size:.82rem;}
+    .speed-val{font-size:.78rem;}
+  }
+  @media (max-width: 420px){
+    .masthead-title{font-size:.95rem;}
+    .masthead-sub{font-size:.76rem;}
+    .console{font-size:13px; padding:.7rem;}
+    .legend-row{font-size:.8rem;}
+    .toggle-row{font-size:.8rem;}
+    button{font-size:.78rem; padding:.42rem .55rem;}
   }
   @media (prefers-reduced-motion: reduce){
     * { scroll-behavior:auto !important; }
@@ -309,6 +346,7 @@
 </div>
 
 <div class="ai-badge" id="credit"></div>
+<button class="console-toggle" id="console-toggle" aria-label="Toggle controls">✦</button>
 
 <script>
 (function(){
@@ -1163,7 +1201,7 @@
   var CLOSE = { q: quatFromSpherical(2.2, 0.42), radius: 3.4 };
   var CINE_VIEW = { q: quatFromSpherical(2.2, 1.42), radius: 6.2 };
   var cam = { q: WIDE.q.slice(), radius: WIDE.radius, vYaw: 0, vPitch: 0 };
-  var R_MIN = 1.6, R_MAX = 195;
+  var R_MIN = 0.8, R_MAX = 250;
   var transition = null;
   var isDragging = false, lastX=0, lastY=0;
   var pointers = new Map();
@@ -1179,7 +1217,6 @@
   }
 
   canvas.addEventListener('pointerdown', function(e){
-    canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
     if(pointers.size === 1){ setDragging(true); lastX=e.clientX; lastY=e.clientY; }
   });
@@ -1190,8 +1227,10 @@
       var pts = Array.from(pointers.values());
       var d = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
       if(canvas._pinchD){
-        var ratio = canvas._pinchD / Math.max(d,1);
-        cam.radius = clamp(cam.radius*ratio, R_MIN, R_MAX);
+        var ratio = canvas._pinchD / Math.max(d, 1);
+        var newR = cam.radius * ratio;
+        newR = cam.radius + (newR - cam.radius) * 1.8;
+        cam.radius = clamp(newR, R_MIN, R_MAX);
       }
       canvas._pinchD = d;
       return;
@@ -1204,15 +1243,26 @@
     transition = null;
   });
   function endPointer(e){
+    if(tapTimer){ clearTimeout(tapTimer); tapTimer = null; }
     pointers.delete(e.pointerId);
     canvas._pinchD = null;
-    if(pointers.size === 0) setDragging(false);
+    if(pointers.size === 1){
+      // Re-set drag origin to the remaining pointer's position
+      var rem = Array.from(pointers.values())[0];
+      lastX = rem.x; lastY = rem.y;
+      setDragging(true);
+    } else if(pointers.size === 0) {
+      setDragging(false);
+    }
   }
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', function(e){
     e.preventDefault();
-    cam.radius = clamp(cam.radius*Math.pow(1.0016, e.deltaY), R_MIN, R_MAX);
+    var factor = Math.pow(1.003, e.deltaY);
+    var newR = cam.radius * factor;
+    newR = cam.radius + (newR - cam.radius) * 2.5;
+    cam.radius = clamp(newR, R_MIN, R_MAX);
     transition = null;
   }, {passive:false});
 
@@ -1496,6 +1546,42 @@
 
   document.getElementById('veil').classList.add('hidden');
   requestAnimationFrame(frame);
+
+  // ---- Mobile: auto-hide console on canvas interaction, tap to show ----
+  var consoleEl = document.getElementById('console');
+  var consoleToggle = document.getElementById('console-toggle');
+  var consoleVisible = true;
+  var tapTimer = null;
+
+  function isMobile(){ return window.innerWidth <= 640; }
+
+  function showConsole(v){
+    consoleVisible = v;
+    consoleEl.classList.toggle('collapsed', !v);
+    consoleToggle.classList.toggle('show', !v);
+    consoleToggle.classList.toggle('hidden', v);
+  }
+
+  // Init toggle visibility — hidden by default (console starts visible)
+  if(isMobile()){ showConsole(true); }
+
+  consoleToggle.addEventListener('click', function(e){
+    e.stopPropagation();
+    showConsole(true);
+  });
+
+  // Hide console on first drag on mobile to free screen space
+  canvas.addEventListener('pointerdown', function(e){
+    if(isMobile() && consoleVisible && pointers.size === 1){
+      tapTimer = setTimeout(function(){
+        showConsole(false);
+      }, 200);
+    }
+  });
+
+  // Prevent the pointerdown on the console from propagating to the canvas
+  consoleEl.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+  consoleEl.addEventListener('pointerup', function(e){ e.stopPropagation(); });
 
 })();
 </script>
