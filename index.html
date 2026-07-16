@@ -249,10 +249,10 @@
     <label class="switch"><input type="checkbox" id="tg-jet" checked><span class="track"><span class="knob"></span></span></label>
   </div>
   <div class="toggle-row"><span id="lb-gal"></span>
-    <label class="switch"><input type="checkbox" id="tg-gal" checked><span class="track"><span class="knob"></span></span></label>
+    <label class="switch"><input type="checkbox" id="tg-gal"><span class="track"><span class="knob"></span></span></label>
   </div>
   <div class="toggle-row"><span id="lb-uni"></span>
-    <label class="switch"><input type="checkbox" id="tg-uni" checked><span class="track"><span class="knob"></span></span></label>
+    <label class="switch"><input type="checkbox" id="tg-uni"><span class="track"><span class="knob"></span></span></label>
   </div>
 
   <p class="section-label" id="lbl-anim"></p>
@@ -280,7 +280,7 @@
     <p id="about-1"></p>
     <p id="about-2"></p>
     <p id="about-3"></p>
-    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), "JWST reveals how black holes are fed", ApJL. doi:10.3847/2041-8213/ae81ae — NGC 1275 (Perseus): similar structure.</p>
+    <p class="cite">Hlavacek-Larrondo, J. et al. (2026), <a href="https://iopscience.iop.org/article/10.3847/2041-8213/ae81ae" target="_blank" rel="noopener">"JWST reveals how black holes are fed"</a>, ApJL. doi:<a href="https://doi.org/10.3847/2041-8213/ae81ae" target="_blank" rel="noopener">10.3847/2041-8213/ae81ae</a> — NGC 1275 (Perseus): similar structure.</p>
   </details>
 </div>
 
@@ -919,7 +919,7 @@
   uploadPos(galaxy); uploadCol(galaxy); uploadSize(galaxy);
 
   // ---------------- Nebular veil (artistic mode): spiral haze ----------------
-  var NEB_N = 1500;
+  var NEB_N = 2200;
   var nebula = makeGroup(NEB_N, false);
   var nebulaBase = new Float32Array(NEB_N*3);
   (function(){
@@ -927,7 +927,9 @@
     while(placed < NEB_N){
       var rr = 1.2 + 12.0*Math.sqrt(Math.random());
       var th = rand(0, Math.PI*2);
-      var armPhase = th - 2.1*Math.log(rr);
+      // trailing arms: winding opposite to the (counterclockwise) rotation
+      // shared by the nuclear disk and the black hole's accretion flow
+      var armPhase = th + 2.1*Math.log(rr);
       var w = 0.50 + 0.50*Math.cos(2.0*armPhase);
       if(Math.random() > 0.25 + 0.75*w) continue;
       var h = (Math.random()+Math.random()+Math.random()-1.5) * (0.5 + rr*0.06);
@@ -935,9 +937,9 @@
       nebulaBase[placed*3]=x; nebulaBase[placed*3+1]=h; nebulaBase[placed*3+2]=z;
       var tR = clamp((rr-1.2)/12.0, 0, 1);
       var c;
-      if(tR < 0.25) c = mix3([1.0,0.95,0.85], [0.95,0.55,0.70], tR/0.25);
-      else c = mix3([0.95,0.55,0.70], [0.42,0.48,0.95], (tR-0.25)/0.75);
-      var b = (0.06 + 0.16*(1-tR)) * rand(0.5,1.0) * (0.6+0.4*w);
+      if(tR < 0.25) c = mix3([1.0,0.97,0.88], [0.96,0.58,0.72], tR/0.25);
+      else c = mix3([0.96,0.58,0.72], [0.44,0.50,0.98], (tR-0.25)/0.75);
+      var b = (0.14 + 0.34*(1-tR)) * rand(0.55,1.0) * (0.6+0.4*w);
       nebula.col[placed*3]=c[0]*b; nebula.col[placed*3+1]=c[1]*b; nebula.col[placed*3+2]=c[2]*b;
       nebula.size[placed] = rand(24, 60);
       placed++;
@@ -1220,6 +1222,10 @@
     document.getElementById('mode-schema').classList.toggle('active', mode==='schema');
     document.getElementById('mode-art').classList.toggle('active', mode==='art');
     document.getElementById('row-disk').classList.toggle('dimmed', mode==='art');
+    // per-mode layer defaults: galaxy & cluster shine in the artistic vista,
+    // stay out of the way in the educational diagram
+    setLayer('gal', 'tg-gal', mode==='art');
+    setLayer('uni', 'tg-uni', mode==='art');
     if(mode === 'art'){
       flyTo({ q: CINE_VIEW.q, radius: CINE_VIEW.radius }, null);
     }
@@ -1228,7 +1234,11 @@
   document.getElementById('mode-schema').addEventListener('click', function(){ setMode('schema'); });
   document.getElementById('mode-art').addEventListener('click', function(){ setMode('art'); });
 
-  var layerVisible = { atmo:true, fil:true, disk:true, jet:true, gal:true, uni:true };
+  var layerVisible = { atmo:true, fil:true, disk:true, jet:true, gal:false, uni:false };
+  function setLayer(key, checkboxId, v){
+    layerVisible[key] = v;
+    document.getElementById(checkboxId).checked = v;
+  }
   document.getElementById('tg-atmo').addEventListener('change', function(e){ layerVisible.atmo = e.target.checked; });
   document.getElementById('tg-fil').addEventListener('change', function(e){ layerVisible.fil = e.target.checked; });
   document.getElementById('tg-disk').addEventListener('change', function(e){ layerVisible.disk = e.target.checked; });
